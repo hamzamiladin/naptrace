@@ -5589,7 +5589,7 @@ checksum = "2195bf6aa996a481483b29d62a7663eed3fe39600c460e323f8ff41e90bdd89b"
 
 [[package]]
 name = "naptrace"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -5609,7 +5609,7 @@ dependencies = [
 
 [[package]]
 name = "naptrace-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "directories",
@@ -5646,7 +5646,7 @@ dependencies = [
 
 [[package]]
 name = "naptrace-embed"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "arrow-array 53.4.0",
@@ -5665,7 +5665,7 @@ dependencies = [
 
 [[package]]
 name = "naptrace-joern"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "directories",
@@ -5681,7 +5681,7 @@ dependencies = [
 
 [[package]]
 name = "naptrace-llm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "reqwest",

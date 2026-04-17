@@ -9,7 +9,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.85"
 license = "Apache-2.0"
@@ -74,7 +74,7 @@ walkdir = "2"
 once_cell = "1"
 
 # Internal crates
-naptrace-core = { version = "0.1.0", path = "crates/naptrace-core" }
-naptrace-joern = { version = "0.1.0", path = "crates/naptrace-joern" }
-naptrace-embed = { version = "0.1.0", path = "crates/naptrace-embed" }
-naptrace-llm = { version = "0.1.0", path = "crates/naptrace-llm" }
+naptrace-core = { version = "0.2.0", path = "crates/naptrace-core" }
+naptrace-joern = { version = "0.2.0", path = "crates/naptrace-joern" }
+naptrace-embed = { version = "0.2.0", path = "crates/naptrace-embed" }
+naptrace-llm = { version = "0.2.0", path = "crates/naptrace-llm" }
