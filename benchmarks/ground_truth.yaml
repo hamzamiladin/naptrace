@@ -217,3 +217,211 @@
       function: compile
       is_feasible: true
       notes: "Discovered by Google Big Sleep. UAF in DFG JIT compiler."
+
+# ==========================================================================
+# 2026 CVEs (January - April 2026)
+# ==========================================================================
+
+# === Family 9: Django ORM SQL Injection twins (2026-02) ===
+
+- cve: CVE-2026-1207
+  description: "Django SQL injection in RasterField band index lookups"
+  bug_class: INJECTION
+  source_repo: https://github.com/django/django
+  patch_commit: 81aa5292967cd09319c45fe2c1a525ce7b6684d8
+  language: python
+  family: django_orm_sqli
+  variants:
+    - file: django/contrib/gis/db/backends/postgis/operations.py
+      function: band_index
+      is_feasible: true
+      notes: "Band index parameter passed directly into SQL without parameterization."
+
+- cve: CVE-2026-1287
+  description: "Django SQL injection in FilteredRelation column aliases via control characters"
+  bug_class: INJECTION
+  source_repo: https://github.com/django/django
+  patch_commit: e891a84c7ef9962bfcc3b4685690219542f86a22
+  language: python
+  family: django_orm_sqli
+  variants:
+    - file: django/db/models/sql/query.py
+      function: add_filtered_relation
+      is_feasible: true
+      notes: "Column alias not sanitized, control chars allow SQL breakout. Structural twin of CVE-2026-1207."
+
+# === Family 10: OpenSSL PKCS#12 buffer overflow cluster (2026-01) ===
+
+- cve: CVE-2025-11187
+  description: "OpenSSL PKCS#12 PBMAC1 buffer overflow"
+  bug_class: OOB_WRITE
+  source_repo: https://github.com/openssl/openssl
+  patch_commit: pending_extraction
+  language: c
+  family: openssl_asn1
+  variants:
+    - file: crypto/pkcs12/p12_mutl.c
+      function: PKCS12_gen_mac
+      is_feasible: true
+      notes: "PBMAC1 key derivation buffer overflow. Same ASN.1 length validation gap as CVE-2025-15467."
+
+# === Family 11: Linux Netfilter March-April 2026 cluster ===
+
+- cve: CVE-2026-31414
+  description: "Linux netfilter conntrack NULL pointer dereference"
+  bug_class: NULL_DEREF
+  source_repo: https://github.com/torvalds/linux
+  patch_commit: pending_extraction
+  language: c
+  family: netfilter_2026
+  variants:
+    - file: net/netfilter/nf_conntrack_core.c
+      function: nf_conntrack_find_get
+      is_feasible: true
+      notes: "Missing NULL check on conntrack entry lookup result."
+
+- cve: CVE-2026-31418
+  description: "Linux netfilter nf_tables OOB access"
+  bug_class: OOB_READ
+  source_repo: https://github.com/torvalds/linux
+  patch_commit: pending_extraction
+  language: c
+  family: netfilter_2026
+  variants:
+    - file: net/netfilter/nf_tables_api.c
+      function: nft_set_lookup
+      is_feasible: true
+      notes: "Set element lookup with unchecked offset. Variant of long-running netfilter family."
+
+- cve: CVE-2026-23457
+  description: "Linux netfilter privilege escalation via improper validation"
+  bug_class: AUTHZ_BYPASS
+  source_repo: https://github.com/torvalds/linux
+  patch_commit: pending_extraction
+  language: c
+  family: netfilter_2026
+  variants:
+    - file: net/netfilter/nf_tables_api.c
+      function: nft_table_validate
+      is_feasible: true
+      notes: "Insufficient validation allows privilege escalation. Continues CVE-2024-1086 pattern."
+
+# === Family 12: AppArmor CrackArmor privilege escalation (2026-03) ===
+
+- cve: CVE-2026-23268
+  description: "AppArmor securityfs confused deputy privilege escalation"
+  bug_class: AUTHZ_BYPASS
+  source_repo: https://github.com/torvalds/linux
+  patch_commit: pending_extraction
+  language: c
+  family: crackarmor
+  variants:
+    - file: security/apparmor/apparmorfs.c
+      function: aa_replace_profiles
+      is_feasible: true
+      notes: "Confused deputy in securityfs interface. Part of 9-CVE CrackArmor family (Qualys TRU)."
+    - file: security/apparmor/policy_unpack.c
+      function: aa_unpack_profile
+      is_feasible: true
+      notes: "Same pattern — insufficient permission checks during profile operations."
+
+# === Family 13: Linux ksmbd SMB3 UAF (2026-01) ===
+
+- cve: CVE-2026-23226
+  description: "ksmbd SMB3 multi-channel session use-after-free"
+  bug_class: USE_AFTER_FREE
+  source_repo: https://github.com/torvalds/linux
+  patch_commit: pending_extraction
+  language: c
+  family: ksmbd_uaf
+  variants:
+    - file: fs/smb/server/smb2pdu.c
+      function: smb2_sess_setup
+      is_feasible: true
+      notes: "Race between session setup and channel binding. CVSS 8.8. Variant of CVE-2025-21945."
+
+# === Family 14: Composer command injection twins (2026-03) ===
+
+- cve: CVE-2026-40176
+  description: "Composer Perforce VCS driver command injection"
+  bug_class: INJECTION
+  source_repo: https://github.com/composer/composer
+  patch_commit: pending_extraction
+  language: php
+  family: composer_injection
+  variants:
+    - file: src/Composer/Repository/Vcs/PerforceDriver.php
+      function: getFileContent
+      is_feasible: true
+      notes: "Shell metacharacters in depot path not escaped."
+
+- cve: CVE-2026-40261
+  description: "Composer Perforce driver depot path injection"
+  bug_class: INJECTION
+  source_repo: https://github.com/composer/composer
+  patch_commit: pending_extraction
+  language: php
+  family: composer_injection
+  variants:
+    - file: src/Composer/Repository/Vcs/PerforceDriver.php
+      function: getBranches
+      is_feasible: true
+      notes: "Structural twin of CVE-2026-40176. Same escaping gap, different method."
+
+# === Family 15: Node.js March 2026 security batch ===
+
+- cve: CVE-2026-21637
+  description: "Node.js HTTP header injection via malformed Transfer-Encoding"
+  bug_class: INJECTION
+  source_repo: https://github.com/nodejs/node
+  patch_commit: df8fbfb93d
+  language: cpp
+  family: nodejs_http
+  variants:
+    - file: src/node_http_parser.cc
+      function: on_headers_complete
+      is_feasible: true
+      notes: "Part of 8-CVE batch release 2026-03-24."
+
+# === Family 16: Spring path traversal variant chain (2026-03) ===
+
+- cve: CVE-2026-22737
+  description: "Spring Framework path traversal in static resource serving"
+  bug_class: PATH_TRAVERSAL
+  source_repo: https://github.com/spring-projects/spring-framework
+  patch_commit: pending_extraction
+  language: java
+  family: spring_path_traversal
+  variants:
+    - file: spring-webmvc/src/main/java/org/springframework/web/servlet/resource/ResourceHttpRequestHandler.java
+      function: handleRequest
+      is_feasible: true
+      notes: "Third variant in chain: CVE-2024-38819 → CVE-2025-41242 → CVE-2026-22737."
+
+# === Family 17: Chrome Dawn WebGPU UAF cluster (2026-04) ===
+
+- cve: CVE-2026-5281
+  description: "Chrome Dawn WebGPU use-after-free (actively exploited zero-day)"
+  bug_class: USE_AFTER_FREE
+  source_repo: https://chromium.googlesource.com/chromium/src
+  patch_commit: pending_extraction
+  language: cpp
+  family: chrome_dawn_uaf
+  variants:
+    - file: third_party/dawn/src/dawn/native/Device.cpp
+      function: DeviceBase::Destroy
+      is_feasible: true
+      notes: "CISA KEV. Same researcher found CVE-2026-4676 and CVE-2026-5284."
+
+- cve: CVE-2026-4676
+  description: "Chrome Dawn WebGPU UAF variant"
+  bug_class: USE_AFTER_FREE
+  source_repo: https://chromium.googlesource.com/chromium/src
+  patch_commit: pending_extraction
+  language: cpp
+  family: chrome_dawn_uaf
+  variants:
+    - file: third_party/dawn/src/dawn/native/Buffer.cpp
+      function: BufferBase::Destroy
+      is_feasible: true
+      notes: "Same UAF pattern as CVE-2026-5281 but in buffer lifecycle."

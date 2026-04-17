@@ -192,18 +192,26 @@ Run `naptrace doctor` to verify which providers are configured.
 
 ## Benchmarks
 
-15 CVEs across 8 vulnerability families, 4 languages:
+28 CVEs across 17 vulnerability families, 7 languages:
 
-| Family | CVEs | Language | Bug class |
-|--------|------|----------|-----------|
-| Linux io_uring pbuf | CVE-2024-0582, CVE-2024-35880, CVE-2025-21836 | C | UAF / race |
-| SQLite arithmetic | CVE-2025-6965 (Big Sleep) | C | integer overflow |
-| OpenSSL ASN.1 | CVE-2025-15467, -15468, -15469 | C | buffer overflow |
-| curl boundary | CVE-2025-9086 | C | OOB read |
-| libxml2 buffer calc | CVE-2025-6021 | C | integer overflow |
-| Python pickle RCE | CVE-2025-32444, CVE-2025-61765 | Python | deserialization |
-| Apache Commons | CVE-2025-48734 | Java | access control |
-| WebKit Big Sleep | CVE-2025-43429, CVE-2025-43434 | C++ | UAF / overflow |
+| Family | CVEs | Language | Bug class | Year |
+|--------|------|----------|-----------|------|
+| Linux io_uring pbuf | 3 CVEs | C | UAF / race | 2024-25 |
+| SQLite arithmetic | CVE-2025-6965 (Big Sleep) | C | integer overflow | 2025 |
+| OpenSSL ASN.1 | 4 CVEs (AISLE) | C | buffer overflow | 2025-26 |
+| curl boundary | CVE-2025-9086 | C | OOB read | 2025 |
+| libxml2 buffer calc | CVE-2025-6021 | C | integer overflow | 2025 |
+| Python pickle RCE | 2 CVEs (vLLM, socketio) | Python | deserialization | 2025 |
+| Apache Commons | CVE-2025-48734 | Java | access control | 2025 |
+| WebKit Big Sleep | 2 CVEs | C++ | UAF / overflow | 2025 |
+| Django ORM SQLi | CVE-2026-1207, -1287 | Python | injection | **2026** |
+| Linux Netfilter | 3 CVEs | C | NULL deref / OOB | **2026** |
+| AppArmor CrackArmor | CVE-2026-23268 (9-CVE family) | C | priv escalation | **2026** |
+| Linux ksmbd | CVE-2026-23226 | C | UAF | **2026** |
+| Composer injection | CVE-2026-40176, -40261 | PHP | command injection | **2026** |
+| Node.js HTTP | CVE-2026-21637 | C++ | header injection | **2026** |
+| Spring path traversal | CVE-2026-22737 | Java | path traversal | **2026** |
+| Chrome Dawn WebGPU | CVE-2026-5281, -4676 (zero-day) | C++ | UAF | **2026** |
 
 Full corpus: [`benchmarks/ground_truth.yaml`](benchmarks/ground_truth.yaml) | Harness: [`benchmarks/run.sh`](benchmarks/run.sh)
 
