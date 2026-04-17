@@ -1,57 +1,55 @@
 # naptrace
 
-<!-- TODO: Replace with real asciinema SVG once the pipeline runs end-to-end -->
 ```
-$ naptrace hunt cve:CVE-2025-6965 ./sqlite
-[1/6] ingesting patch from NVD...                   done (0.4s)
-[2/6] distilling vulnerability signature...          done (1.2s)
-[3/6] retrieving candidate sites (K=50)...           done (3.1s)
-[4/6] slicing CPG paths for 12 candidates...         done (8.7s)
-[5/6] reasoning over 12 candidates...                done (14.3s)
-[6/6] generating report...                           done
+$ naptrace hunt file:cve_2025_6965.patch ./target-project
 
-  FEASIBLE  src/vdbe.c:3841         integer overflow in OP_Add — same unchecked
-            arithmetic pattern as CVE-2025-6965, reachable from SQL input.
+naptrace hunt
+────────────────────────────────────────────────────────────
+  patch: file:cve_2025_6965.patch
+  language: c
+  diff: 1 file(s), 3 hunk(s)
+────────────────────────────────────────────────────────────
+  ~ src/vdbe.c [c]
+    hunk 1: @@ -3837,10 +3837,12 @@  (4 removed, 6 added)
+    hunk 2: @@ -3855,9 +3857,11 @@  (3 removed, 5 added)
+    hunk 3: @@ -3872,9 +3876,11 @@  (3 removed, 5 added)
 
-  FEASIBLE  src/expr.c:2104         signed truncation in exprCodeVector() —
-            structurally identical to the patched site in sqlite3VdbeExec().
+  [signature] distilled in 8.5s — INTEGER_OVERFLOW (10/10)
+  [candidates] 5 candidates in 9.0s
+  [cpg] 5 candidates sliced (19.0s)
+  [reason] 5 findings (29.3s)
 
-  NEEDS_CHECK  src/func.c:891      potential overflow in absFunc() — same
-               operand type, but sanitizer may exist on this path.
+  >> FEASIBLE   src/math.c:4-7    [unsafe_add]
+     Unchecked integer addition — same pattern as CVE-2025-6965.
+     confidence: 8/10    similarity: 62%
 
-3 findings (2 feasible, 1 needs_check) in 27.7s
+  >> FEASIBLE   src/math.c:19-22  [unsafe_multiply]
+     Unchecked integer multiplication without overflow guard.
+     confidence: 7/10    similarity: 60%
+
+  ?? NEEDS_CHECK src/math.c:10-16 [safe_add]
+     Has overflow check but path feasibility uncertain.
+     confidence: 4/10    similarity: 64%
+
+  summary: 2 feasible, 1 needs_check, 2 infeasible
+  total elapsed: 29.3s
 ```
-
-Naptrace found **N** variants of **15** known CVEs across **M** real projects.
-See [`benchmarks/`](benchmarks/).
 
 ## Install
 
 ```sh
 cargo install naptrace
 ```
-
-or
-
-```sh
-brew install hamzamiladin/tap/naptrace
-```
-
-or
-
 ```sh
 curl -sSL naptrace.dev/install.sh | sh
 ```
-
-or
-
 ```sh
-docker run ghcr.io/hamzamiladin/naptrace hunt cve:CVE-2025-6965 /src
+docker run ghcr.io/hamzamiladin/naptrace hunt file:patch.diff /src
 ```
 
 ## What it finds
 
-Given the patch for [CVE-2025-6965](https://nvd.nist.gov/vuln/detail/CVE-2025-6965) (the SQLite integer overflow Google's Big Sleep found in July 2025):
+Given the patch for CVE-2025-6965 (the SQLite integer overflow Google's Big Sleep found in July 2025):
 
 ```diff
 --- a/src/vdbe.c
@@ -67,15 +65,7 @@ Given the patch for [CVE-2025-6965](https://nvd.nist.gov/vuln/detail/CVE-2025-69
 +    }
 ```
 
-Naptrace reports this twin in the same codebase:
-
-```
-FEASIBLE  src/expr.c:2104
-  Signed truncation in exprCodeVector() — structurally identical to
-  the patched site in sqlite3VdbeExec(). The operands are user-controlled
-  SQL expression values and no overflow check exists on this path.
-  Confidence: 8/10
-```
+Naptrace finds every function in your codebase with the same unchecked-arithmetic pattern, builds a code property graph, and uses an LLM to determine which candidates are actually reachable and exploitable.
 
 ## How it works
 
@@ -86,42 +76,56 @@ FEASIBLE  src/expr.c:2104
   │  1. Ingest  │  Parse patch from CVE ID, git commit, diff file, or PR URL
   └──────┬──────┘
   ┌──────┴──────┐
-  │ 2. Distill  │  Extract structural vulnerability signature (CPG + NL + tree-sitter)
+  │ 2. Distill  │  LLM extracts structural vulnerability signature
   └──────┬──────┘
   ┌──────┴──────┐
-  │ 3. Retrieve │  Embed target functions, find top-K similar to signature
+  │ 3. Retrieve │  tree-sitter + embeddings find top-K similar functions
   └──────┬──────┘
   ┌──────┴──────┐
-  │  4. Slice   │  Build CPG via Joern, extract interprocedural paths per candidate
+  │  4. Slice   │  Joern CPG paths for each candidate (auto-installs)
   └──────┬──────┘
   ┌──────┴──────┐
-  │  5. Reason  │  LLM classifies each path: feasible / infeasible / needs_check
+  │  5. Reason  │  LLM verdict: feasible / infeasible / needs_check
   └──────┬──────┘
   ┌──────┴──────┐
-  │  6. Report  │  SARIF 2.1.0 output, pretty terminal, optional GitHub issues
+  │  6. Report  │  SARIF 2.1.0 + terminal output
   └──────┴──────┘
 ```
 
 ## Usage
 
 ```sh
-# Hunt for variants of a CVE across your repo
+# Hunt from a CVE ID (fetches patch from NVD)
 naptrace hunt cve:CVE-2025-6965 ./my-project
 
-# Hunt from a specific commit patch
-naptrace hunt https://github.com/user/repo@abc123f ./target-repo
+# Hunt from a git commit
+naptrace hunt https://github.com/sqlite/sqlite@abc123f ./target
 
-# Use a local diff file
-naptrace hunt file:patch.diff ./target-repo
+# Hunt from a local diff file
+naptrace hunt file:patch.diff ./target
 
-# Fully offline with Ollama
-naptrace hunt --reasoner ollama --offline cve:CVE-2025-6965 .
+# Hunt from a pull request
+naptrace hunt pr:https://github.com/user/repo/pull/42 .
 
-# Output SARIF for CI integration
+# Fully offline with Ollama (zero API keys)
+naptrace hunt --reasoner ollama cve:CVE-2025-6965 .
+
+# SARIF output for CI
 naptrace hunt cve:CVE-2025-6965 . --output sarif > findings.sarif
+
+# Check your setup
+naptrace doctor
 ```
 
 ## GitHub Action
+
+Generate a starter workflow:
+
+```sh
+naptrace init-action
+```
+
+Or add manually:
 
 ```yaml
 - uses: hamzamiladin/naptrace-action@v1
@@ -132,18 +136,27 @@ naptrace hunt cve:CVE-2025-6965 . --output sarif > findings.sarif
     api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
+## LLM Backends
+
+| Provider | Flag | Model | Requires |
+|----------|------|-------|----------|
+| Ollama (local) | `--reasoner ollama` | qwen2.5-coder:32b | Nothing (auto-downloads) |
+| Anthropic | `--reasoner anthropic` | claude-opus-4-7 | `ANTHROPIC_API_KEY` |
+| OpenAI | `--reasoner openai` | gpt-4o | `OPENAI_API_KEY` |
+
+Local mode via Ollama is a first-class citizen. No signup, no API keys, no cloud.
+
 ## Benchmarks
 
-| CVE | Bug class | Variants claimed | Variants verified | False positives |
-|-----|-----------|-----------------|-------------------|-----------------|
-| CVE-2025-6965 | integer overflow | — | — | — |
-| ... | ... | — | — | — |
+| CVE | Bug class | Language | Status |
+|-----|-----------|----------|--------|
+| CVE-2025-6965 | INTEGER_OVERFLOW | C | Showcase |
 
 Full harness: [`benchmarks/run.sh`](benchmarks/run.sh)
 
 ## Why this exists
 
-Google's [Big Sleep](https://googleprojectzero.blogspot.com/) (Project Zero + DeepMind) proved that LLMs can perform **variant analysis** — given a patched bug, find its structural twins across a codebase. Big Sleep found real CVEs in SQLite, Chrome, and WebKit that fuzzing missed.
+Google's Big Sleep (Project Zero + DeepMind) proved that LLMs can perform **variant analysis** -- given a patched bug, find its structural twins across a codebase. Big Sleep found real CVEs in SQLite, Chrome, and WebKit that fuzzing missed.
 
 The agent, prompts, and harness are all closed-source.
 

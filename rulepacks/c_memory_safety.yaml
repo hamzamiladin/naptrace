@@ -1,0 +1,83 @@
+# C Memory Safety Rulepack
+# Used as a pre-filter to quickly discard candidates that don't match
+# known memory-safety vulnerability patterns.
+#
+# Each rule describes a syntactic pattern (tree-sitter query) and
+# the bug class it is associated with.
+
+name: c_memory_safety
+language: c
+description: Common C memory safety vulnerability patterns
+version: 1
+
+rules:
+  - id: unchecked_integer_arithmetic
+    bug_class: INTEGER_OVERFLOW
+    description: Arithmetic operation without overflow check
+    pattern: |
+      (binary_expression
+        left: (_)
+        operator: ["+" "-" "*"]
+        right: (_))
+    context: Assignment or return without preceding bounds check
+    severity: high
+
+  - id: unchecked_malloc
+    bug_class: NULL_DEREF
+    description: malloc result used without NULL check
+    pattern: |
+      (call_expression
+        function: (identifier) @fn
+        (#eq? @fn "malloc"))
+    context: Return value used without NULL comparison
+    severity: high
+
+  - id: buffer_access_no_bounds
+    bug_class: OOB_WRITE
+    description: Array subscript without bounds validation
+    pattern: |
+      (subscript_expression
+        argument: (identifier)
+        index: (_))
+    context: Index derived from external input without bounds check
+    severity: critical
+
+  - id: use_after_free_pattern
+    bug_class: USE_AFTER_FREE
+    description: Pointer dereference after free in same scope
+    pattern: |
+      (call_expression
+        function: (identifier) @fn
+        (#eq? @fn "free"))
+    context: Same pointer used after free() call
+    severity: critical
+
+  - id: format_string_user_input
+    bug_class: INJECTION
+    description: Format string with user-controlled argument
+    pattern: |
+      (call_expression
+        function: (identifier) @fn
+        (#match? @fn "printf|sprintf|fprintf|snprintf"))
+    context: First variadic argument is not a string literal
+    severity: high
+
+  - id: strcpy_no_length
+    bug_class: OOB_WRITE
+    description: strcpy without length bounds
+    pattern: |
+      (call_expression
+        function: (identifier) @fn
+        (#eq? @fn "strcpy"))
+    context: Any use of strcpy (prefer strncpy or strlcpy)
+    severity: medium
+
+  - id: double_free_pattern
+    bug_class: DOUBLE_FREE
+    description: Pointer freed twice without reassignment
+    pattern: |
+      (call_expression
+        function: (identifier) @fn
+        (#eq? @fn "free"))
+    context: Same pointer passed to free() more than once
+    severity: critical

@@ -1,0 +1,43 @@
+name: Naptrace Variant Analysis
+
+on:
+  # Run on new CVE advisories or manually
+  workflow_dispatch:
+    inputs:
+      cve:
+        description: 'CVE ID to hunt (e.g. CVE-2025-6965)'
+        required: true
+  schedule:
+    # Weekly scan — adjust as needed
+    - cron: '0 9 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install naptrace
+        run: |
+          curl -sSL naptrace.dev/install.sh | sh
+          echo "$HOME/.naptrace/bin" >> $GITHUB_PATH
+
+      - name: Run variant analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          naptrace hunt \
+            --output sarif \
+            --reasoner anthropic \
+            cve:${{ github.event.inputs.cve || 'CVE-2025-6965' }} \
+            . > naptrace-results.sarif || true
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: naptrace-results.sarif

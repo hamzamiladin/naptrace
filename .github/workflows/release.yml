@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -16,27 +17,59 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+            cross: false
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
+            cross: true
           - target: x86_64-apple-darwin
-            os: macos-latest
+            os: macos-13
+            cross: false
           - target: aarch64-apple-darwin
             os: macos-latest
+            cross: false
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+            cross: false
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+        shell: bash
+
+      - name: Package binary
+        shell: bash
+        run: |
+          BIN="naptrace"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            BIN="naptrace.exe"
+          fi
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/$BIN" "dist/naptrace-${{ matrix.target }}${BIN##naptrace}"
+          cp README.md LICENSE dist/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: naptrace-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/naptrace${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
+          path: dist/*
 
   release:
     name: Create release
@@ -44,11 +77,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: Collect binaries
+        run: |
+          mkdir -p release
+          find artifacts -type f -name 'naptrace-*' -exec cp {} release/ \;
+          ls -la release/
+
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: release/*
           generate_release_notes: true
+
+  docker:
+    name: Docker image
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest

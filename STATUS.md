@@ -48,3 +48,13 @@
 - Exit codes: 0 = clean, 1 = feasible findings.
 - **Full 6-stage pipeline operational.** Phase A milestone reached.
 - Next: benchmark corpus, polish, and launch preparation.
+
+## 2026-04-17 — Phase B complete (installable + polished)
+
+- Benchmark corpus with ground truth YAML and `naptrace bench` harness.
+- C memory safety rulepack.
+- `naptrace init-action` generates CI workflow.
+- Dockerfile, install.sh, Homebrew formula template.
+- Multi-OS release workflow with Docker image publishing.
+- Polished README with real pipeline output.
+- All Phase A and Phase B milestones achieved.

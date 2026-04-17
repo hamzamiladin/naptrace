@@ -39,3 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exit codes per spec: 0 = no feasible findings, 1 = feasible found
 - Complete 6-stage pipeline working end-to-end
 - 43 tests total
+- Benchmark corpus with ground truth (`benchmarks/ground_truth.yaml`) and `naptrace bench` harness
+- C memory safety rulepack (`rulepacks/c_memory_safety.yaml`)
+- `naptrace init-action` generates a starter GitHub Actions workflow
+- Dockerfile for `docker run ghcr.io/hamzamiladin/naptrace`
+- `install.sh` for `curl | sh` installation
+- Multi-OS release workflow with cross-compilation and Docker image publishing
+- Benchmark CI workflow (weekly)
+- Homebrew formula template (`packaging/naptrace.rb`)
+- Polished README with real pipeline output

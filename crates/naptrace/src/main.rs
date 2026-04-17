@@ -134,12 +134,37 @@ async fn main() -> anyhow::Result<()> {
             std::process::exit(2);
         }
         Commands::Bench => {
-            eprintln!("bench is not yet implemented");
-            std::process::exit(2);
+            println!("Running naptrace benchmark harness...\n");
+            let status = std::process::Command::new("bash")
+                .arg("benchmarks/run.sh")
+                .status();
+            match status {
+                Ok(s) if s.success() => Ok(()),
+                Ok(s) => {
+                    std::process::exit(s.code().unwrap_or(2));
+                }
+                Err(e) => {
+                    eprintln!("failed to run benchmarks/run.sh: {e}");
+                    std::process::exit(2);
+                }
+            }
         }
         Commands::InitAction => {
-            eprintln!("init-action is not yet implemented");
-            std::process::exit(2);
+            let workflow = include_str!("init_action_template.yml");
+            let dest = ".github/workflows/naptrace.yml";
+            let dir = std::path::Path::new(".github/workflows");
+            if let Err(e) = std::fs::create_dir_all(dir) {
+                eprintln!("failed to create {}: {e}", dir.display());
+                std::process::exit(2);
+            }
+            if std::path::Path::new(dest).exists() {
+                eprintln!("{dest} already exists — not overwriting");
+                std::process::exit(2);
+            }
+            std::fs::write(dest, workflow).unwrap();
+            println!("Created {dest}");
+            println!("Commit and push to enable naptrace in CI.");
+            Ok(())
         }
     }
 }

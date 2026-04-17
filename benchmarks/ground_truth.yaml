@@ -1,0 +1,88 @@
+# Naptrace Benchmark Ground Truth
+#
+# Each entry is a CVE with known variant locations.
+# All CVEs should be post-January-2026 to avoid training data leakage.
+# is_feasible: true = confirmed variant, false = structurally similar but patched/unreachable
+
+- cve: CVE-2025-6965
+  description: SQLite integer overflow in VDBE arithmetic opcodes
+  bug_class: INTEGER_OVERFLOW
+  source_repo: https://github.com/sqlite/sqlite
+  patch_commit: placeholder_sha  # replace with actual commit SHA
+  language: c
+  variants:
+    - file: src/expr.c
+      line_range: [2100, 2120]
+      function: exprCodeVector
+      is_feasible: true
+      notes: Signed truncation, structurally identical to OP_Add
+    - file: src/func.c
+      line_range: [885, 900]
+      function: absFunc
+      is_feasible: false  # needs_runtime_check — sanitizer may exist
+      notes: Potential overflow in absFunc but runtime path unclear
+
+- cve: CVE-2026-XXXXX-1
+  description: "Placeholder: Linux netfilter UAF family"
+  bug_class: USE_AFTER_FREE
+  source_repo: https://github.com/torvalds/linux
+  patch_commit: placeholder_sha
+  language: c
+  variants:
+    - file: net/netfilter/nf_tables_api.c
+      line_range: [1000, 1050]
+      function: placeholder
+      is_feasible: true
+      notes: placeholder
+
+- cve: CVE-2026-XXXXX-2
+  description: "Placeholder: OpenSSL buffer overflow family"
+  bug_class: OOB_WRITE
+  source_repo: https://github.com/openssl/openssl
+  patch_commit: placeholder_sha
+  language: c
+  variants:
+    - file: crypto/placeholder.c
+      line_range: [100, 150]
+      function: placeholder
+      is_feasible: true
+      notes: placeholder
+
+- cve: CVE-2026-XXXXX-3
+  description: "Placeholder: libxml2 integer overflow family"
+  bug_class: INTEGER_OVERFLOW
+  source_repo: https://github.com/GNOME/libxml2
+  patch_commit: placeholder_sha
+  language: c
+  variants:
+    - file: placeholder.c
+      line_range: [100, 150]
+      function: placeholder
+      is_feasible: true
+      notes: placeholder
+
+- cve: CVE-2026-XXXXX-4
+  description: "Placeholder: curl path handling variants"
+  bug_class: PATH_TRAVERSAL
+  source_repo: https://github.com/curl/curl
+  patch_commit: placeholder_sha
+  language: c
+  variants:
+    - file: lib/placeholder.c
+      line_range: [100, 150]
+      function: placeholder
+      is_feasible: true
+      notes: placeholder
+
+- cve: CVE-2026-XXXXX-5
+  description: "Placeholder: Apache Commons deserialization"
+  bug_class: DESERIALIZATION
+  source_repo: https://github.com/apache/commons-collections
+  patch_commit: placeholder_sha
+  language: java
+  variants:
+    - file: src/main/java/placeholder.java
+      line_range: [100, 150]
+      function: placeholder
+      is_feasible: true
+      notes: placeholder
