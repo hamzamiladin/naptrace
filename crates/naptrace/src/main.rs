@@ -120,8 +120,9 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    // Show animated banner for interactive commands on a TTY
-    let show_animation = std::io::stderr().is_terminal();
+    // Show animated banner on TTY or when NAPTRACE_BANNER=1 (for recordings)
+    let show_animation =
+        std::io::stderr().is_terminal() || std::env::var("NAPTRACE_BANNER").is_ok();
 
     match cli.command {
         Commands::Doctor => {
