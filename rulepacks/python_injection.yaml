@@ -1,0 +1,73 @@
+name: python_injection
+language: python
+description: Python code injection and unsafe deserialization patterns
+version: 1
+
+rules:
+  - id: eval_user_input
+    bug_class: INJECTION
+    description: eval() or exec() with potentially user-controlled input
+    pattern: |
+      (call
+        function: (identifier) @fn
+        (#match? @fn "eval|exec"))
+    context: Argument is not a hardcoded string literal
+    severity: critical
+
+  - id: pickle_load
+    bug_class: DESERIALIZATION
+    description: pickle.load/loads with untrusted data
+    pattern: |
+      (call
+        function: (attribute
+          object: (identifier) @mod
+          attribute: (identifier) @fn)
+        (#eq? @mod "pickle")
+        (#match? @fn "load|loads"))
+    context: Data source is user-controlled or from network
+    severity: critical
+
+  - id: yaml_unsafe_load
+    bug_class: DESERIALIZATION
+    description: yaml.load without SafeLoader
+    pattern: |
+      (call
+        function: (attribute
+          attribute: (identifier) @fn)
+        (#eq? @fn "load"))
+    context: No Loader=yaml.SafeLoader argument present
+    severity: high
+
+  - id: os_system
+    bug_class: INJECTION
+    description: os.system or subprocess with shell=True
+    pattern: |
+      (call
+        function: (attribute
+          object: (identifier) @mod
+          attribute: (identifier) @fn)
+        (#eq? @mod "os")
+        (#eq? @fn "system"))
+    context: Command string includes user-controlled data
+    severity: critical
+
+  - id: format_string_injection
+    bug_class: INJECTION
+    description: f-string or .format() in SQL/shell context
+    pattern: |
+      (call
+        function: (attribute
+          attribute: (identifier) @fn)
+        (#eq? @fn "format"))
+    context: Used to build SQL queries or shell commands
+    severity: high
+
+  - id: jinja2_no_autoescape
+    bug_class: INJECTION
+    description: Jinja2 Environment without autoescape
+    pattern: |
+      (call
+        function: (identifier) @fn
+        (#eq? @fn "Environment"))
+    context: No autoescape=True in arguments
+    severity: medium

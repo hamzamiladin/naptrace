@@ -52,12 +52,15 @@ $ naptrace hunt file:cve_2025_6965.patch ./target-project
 ## Install
 
 ```sh
-cargo install naptrace
+# From source (requires Rust)
+cargo install --git https://github.com/hamzamiladin/naptrace
 ```
 ```sh
-curl -sSL naptrace.dev/install.sh | sh
+# Pre-built binary (Linux/macOS)
+curl -sSL https://raw.githubusercontent.com/hamzamiladin/naptrace/main/install.sh | sh
 ```
 ```sh
+# Docker
 docker run ghcr.io/hamzamiladin/naptrace hunt file:patch.diff /src
 ```
 

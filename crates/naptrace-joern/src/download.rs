@@ -127,7 +127,12 @@ pub fn auto_install_java() -> Result<()> {
 }
 
 fn which_exists(binary: &str) -> bool {
-    std::process::Command::new("which")
+    let cmd = if cfg!(target_os = "windows") {
+        "where"
+    } else {
+        "which"
+    };
+    std::process::Command::new(cmd)
         .arg(binary)
         .output()
         .map(|o| o.status.success())

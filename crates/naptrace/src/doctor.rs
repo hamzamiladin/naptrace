@@ -218,13 +218,26 @@ fn check_git() -> Check {
 }
 
 fn which(binary: &str) -> Option<String> {
-    std::process::Command::new("which")
+    // Cross-platform: use `where` on Windows, `which` elsewhere
+    let cmd = if cfg!(target_os = "windows") {
+        "where"
+    } else {
+        "which"
+    };
+    std::process::Command::new(cmd)
         .arg(binary)
         .output()
         .ok()
         .and_then(|out| {
             if out.status.success() {
-                Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+                Some(
+                    String::from_utf8_lossy(&out.stdout)
+                        .lines()
+                        .next()
+                        .unwrap_or("")
+                        .trim()
+                        .to_string(),
+                )
             } else {
                 None
             }

@@ -1,0 +1,58 @@
+name: java_deserialization
+language: java
+description: Java deserialization and unsafe reflection patterns
+version: 1
+
+rules:
+  - id: objectinputstream_readobject
+    bug_class: DESERIALIZATION
+    description: ObjectInputStream.readObject() without type validation
+    pattern: |
+      (method_invocation
+        object: (_)
+        name: (identifier) @fn
+        (#eq? @fn "readObject"))
+    context: No instanceof check or allowlist after deserialization
+    severity: critical
+
+  - id: unsafe_xml_parser
+    bug_class: INJECTION
+    description: XML parser without disabling external entities
+    pattern: |
+      (method_invocation
+        name: (identifier) @fn
+        (#match? @fn "newSAXParser|newDocumentBuilder|createXMLReader"))
+    context: No setFeature call to disable XXE
+    severity: critical
+
+  - id: runtime_exec
+    bug_class: INJECTION
+    description: Runtime.exec with user-controlled input
+    pattern: |
+      (method_invocation
+        object: (_)
+        name: (identifier) @fn
+        (#eq? @fn "exec"))
+    context: Argument derived from user input without sanitization
+    severity: critical
+
+  - id: unsafe_reflection
+    bug_class: INJECTION
+    description: Class.forName with user-controlled input
+    pattern: |
+      (method_invocation
+        name: (identifier) @fn
+        (#eq? @fn "forName"))
+    context: Class name argument comes from external input
+    severity: high
+
+  - id: sql_string_concat
+    bug_class: INJECTION
+    description: SQL query built via string concatenation
+    pattern: |
+      (binary_expression
+        left: (string_literal)
+        operator: "+"
+        right: (_))
+    context: String contains SQL keywords (SELECT, INSERT, UPDATE, DELETE)
+    severity: high

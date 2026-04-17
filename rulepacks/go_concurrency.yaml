@@ -1,0 +1,54 @@
+name: go_concurrency
+language: go
+description: Go concurrency bugs and race condition patterns
+version: 1
+
+rules:
+  - id: unguarded_map_access
+    bug_class: RACE_CONDITION
+    description: Map read/write without mutex protection in concurrent context
+    pattern: |
+      (index_expression
+        operand: (identifier))
+    context: Inside a goroutine or function called from goroutine without sync.Mutex
+    severity: high
+
+  - id: goroutine_loop_capture
+    bug_class: RACE_CONDITION
+    description: Loop variable captured by goroutine closure
+    pattern: |
+      (go_statement
+        (call_expression
+          function: (func_literal)))
+    context: Goroutine references loop iterator variable without copy
+    severity: high
+
+  - id: unsafe_pointer_cast
+    bug_class: TYPE_CONFUSION
+    description: unsafe.Pointer conversion without bounds check
+    pattern: |
+      (call_expression
+        function: (selector_expression
+          field: (field_identifier) @fn)
+        (#eq? @fn "Pointer"))
+    context: Used for type punning or memory manipulation
+    severity: high
+
+  - id: unbuffered_channel_deadlock
+    bug_class: RACE_CONDITION
+    description: Send on unbuffered channel in same goroutine as receive
+    pattern: |
+      (send_statement)
+    context: Channel is unbuffered and both send/receive in same goroutine
+    severity: medium
+
+  - id: missing_error_check
+    bug_class: NULL_DEREF
+    description: Error return value ignored
+    pattern: |
+      (assignment_statement
+        left: (expression_list
+          (identifier) @err)
+        (#eq? @err "_"))
+    context: Error from network/file/crypto operation discarded
+    severity: medium

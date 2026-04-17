@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod extract;
 
 use anyhow::{bail, Context, Result};
@@ -59,31 +60,48 @@ pub async fn retrieve(
         .next()
         .context("empty embedding response for query")?;
 
-    // Step 4: Embed functions in batches
-    let batch_size = 64;
-    let mut all_embeddings: Vec<Vec<f32>> = Vec::with_capacity(functions.len());
-    let total_batches = functions.len().div_ceil(batch_size);
+    // Step 4: Embed functions (check cache first)
+    let mut all_embeddings: Vec<Vec<f32>>;
 
-    for (batch_idx, chunk) in functions.chunks(batch_size).enumerate() {
-        info!(
-            batch = batch_idx + 1,
-            total = total_batches,
-            "embedding batch ({}/{})",
-            batch_idx + 1,
-            total_batches,
-        );
-
-        let texts: Vec<String> = chunk.iter().map(|f| truncate_for_embed(&f.body)).collect();
-
-        let embeddings = embedder
-            .embed(&texts)
-            .await
-            .context("failed to embed function batch")?;
-
-        all_embeddings.extend(embeddings);
+    if let Some(cached) = cache::load_cached(target_dir) {
+        if cached.len() == functions.len() {
+            all_embeddings = cached;
+        } else {
+            info!("cache size mismatch — re-embedding");
+            all_embeddings = Vec::with_capacity(functions.len());
+        }
+    } else {
+        all_embeddings = Vec::with_capacity(functions.len());
     }
 
-    info!(count = all_embeddings.len(), "embedded all functions");
+    if all_embeddings.is_empty() {
+        let batch_size = 64;
+        let total_batches = functions.len().div_ceil(batch_size);
+
+        for (batch_idx, chunk) in functions.chunks(batch_size).enumerate() {
+            info!(
+                batch = batch_idx + 1,
+                total = total_batches,
+                "embedding batch ({}/{})",
+                batch_idx + 1,
+                total_batches,
+            );
+
+            let texts: Vec<String> = chunk.iter().map(|f| truncate_for_embed(&f.body)).collect();
+
+            let embeddings = embedder
+                .embed(&texts)
+                .await
+                .context("failed to embed function batch")?;
+
+            all_embeddings.extend(embeddings);
+        }
+
+        info!(count = all_embeddings.len(), "embedded all functions");
+
+        // Save to cache
+        cache::save_cache(target_dir, &all_embeddings);
+    } // end of cache miss block
 
     // Step 5: Compute similarities and rank
     let mut scored: Vec<(usize, f32)> = all_embeddings

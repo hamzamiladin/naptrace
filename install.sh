@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # naptrace installer
-# Usage: curl -sSL naptrace.dev/install.sh | sh
+# Usage: curl -sSL https://raw.githubusercontent.com/hamzamiladin/naptrace/main/install.sh | sh
 
 REPO="hamzamiladin/naptrace"
 INSTALL_DIR="${NAPTRACE_INSTALL_DIR:-$HOME/.naptrace/bin}"
