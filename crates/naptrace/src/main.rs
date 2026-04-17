@@ -1,16 +1,19 @@
+mod banner;
 mod doctor;
 mod explain;
 mod hunt;
 
 use clap::{Parser, Subcommand};
+use std::io::IsTerminal;
 
-const BANNER: &str = r#"
-                     __
-    ____  ____ ___  / /__________ ________
-   / __ \/ __ `/ _ \/ __/ ___/ __ `/ ___/ _ \
-  / / / / /_/ /  __/ /_/ /  / /_/ / /__/  __/
- /_/ /_/\__,_/ .___/\__/_/   \__,_/\___/\___/
-            /_/
+const HELP_BANNER: &str = r#"
+                      __
+   ____  ____ _____  / /__________ _________
+  / __ \/ __ `/ __ \/ __/ ___/ __ `/ ___/ _ \
+ / / / / /_/ / /_/ / /_/ /  / /_/ / /__/  __/
+/_/ /_/\__,_/ .___/\__/_/   \__,_/\___/\___/
+           /_/
+  -->--+-->  the twin hunter for CVEs
 "#;
 
 #[derive(Parser)]
@@ -19,7 +22,7 @@ const BANNER: &str = r#"
     about = "Variant analysis, open-sourced. Feed a CVE patch, find its structural twins.",
     version,
     propagate_version = true,
-    before_help = BANNER,
+    before_help = HELP_BANNER,
 )]
 struct Cli {
     #[command(subcommand)]
@@ -117,8 +120,16 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
+    // Show animated banner for interactive commands on a TTY
+    let show_animation = std::io::stderr().is_terminal();
+
     match cli.command {
-        Commands::Doctor => doctor::run().await,
+        Commands::Doctor => {
+            if show_animation {
+                banner::animate();
+            }
+            doctor::run().await
+        }
         Commands::Hunt {
             patch_source,
             target,
@@ -130,6 +141,10 @@ async fn main() -> anyhow::Result<()> {
             output,
             ..
         } => {
+            if show_animation {
+                banner::animate();
+            }
+
             let langs: Vec<naptrace_core::Language> = languages
                 .unwrap_or_default()
                 .iter()
@@ -152,7 +167,12 @@ async fn main() -> anyhow::Result<()> {
             finding_id,
             reasoner,
             model,
-        } => explain::run(&finding_id, &reasoner, model.as_deref()).await,
+        } => {
+            if show_animation {
+                banner::animate();
+            }
+            explain::run(&finding_id, &reasoner, model.as_deref()).await
+        }
         Commands::Bench => {
             println!("Running naptrace benchmark harness...\n");
             let status = std::process::Command::new("bash")

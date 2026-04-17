@@ -37,8 +37,12 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     // Print ingest summary
     pb.finish_and_clear();
-    println!("\n{}", "naptrace hunt".bold());
-    println!("{}", "─".repeat(60).dimmed());
+    println!(
+        "  {} {}",
+        "hunt".bold().bright_white(),
+        "scanning for variants...".dimmed()
+    );
+    println!("  {}", "─".repeat(56).bright_black());
 
     println!("  {} {}", "patch:".dimmed(), opts.patch_source);
     if let Some(ref cve) = seed.cve_id {

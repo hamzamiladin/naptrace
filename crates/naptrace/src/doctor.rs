@@ -16,10 +16,10 @@ enum Status {
 }
 
 pub async fn run() -> Result<()> {
-    println!("\n{}", "naptrace doctor".bold());
     println!(
-        "{}\n",
-        "checking dependencies and configuration...".dimmed()
+        "  {} {}\n",
+        "doctor".bold().bright_white(),
+        "checking dependencies...".dimmed()
     );
 
     let checks = vec![
