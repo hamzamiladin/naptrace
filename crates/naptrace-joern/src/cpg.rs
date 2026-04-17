@@ -165,12 +165,23 @@ val results = targetMethods.flatMap {{ method =>
     c.contains("bound") || c.contains("limit") || c.contains("assert")
   )
 
+  // Extract symbolic constraints from conditions and type info
+  val typeConstraints = method.parameter.l.flatMap {{ p =>
+    p.typeFullName.headOption.map(t => s"param ${{p.name}} : $t")
+  }}
+
+  val branchConstraints = conditions.map(c => s"branch: $c")
+
+  val allConstraints = (typeConstraints ++ branchConstraints).map(c =>
+    s"\"${{c.take(120).replace("\"", "\\\"").replace("\n", " ")}}\""
+  )
+
   List(s"""{{
     "sources": [${{params.mkString(",")}}],
     "sink": {{"file":"${{method.filename}}","line":{start_line},"code":"${{method.name}}","node_type":"function"}},
     "path_nodes": [${{(callers ++ locals).mkString(",")}}],
     "sanitizers": [${{sanitizers.map(s => s"\"${{s.replace("\"", "\\\"")}}\"").mkString(",")}}],
-    "constraints": []
+    "constraints": [${{allConstraints.mkString(",")}}]
   }}"#,
         function_name = function_name.replace('"', r#"\""#),
         file_path = file_path.replace('"', r#"\""#),

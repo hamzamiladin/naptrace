@@ -48,3 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Benchmark CI workflow (weekly)
 - Homebrew formula template (`packaging/naptrace.rb`)
 - Polished README with real pipeline output
+- `naptrace explain` replays LLM calls with full trace for any finding
+- NVD API response caching + rate limit retry (429 backoff)
+- E2E pipeline test with mock LLM/embedder (runs all 6 stages in CI)
+- Joern CPG queries now extract type and branch constraints
+- ASCII art banner in CLI and README
+- Animated terminal demo GIF (`docs/demo.gif`)
+- 44 tests total

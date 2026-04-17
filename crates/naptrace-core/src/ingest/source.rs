@@ -148,32 +148,75 @@ async fn fetch_git_commit_diff(
     Ok((diff, commit_msg))
 }
 
-/// Fetch a CVE's patch from GitHub advisories or NVD references.
-async fn fetch_cve_patch(cve_id: &str) -> Result<String> {
-    // Strategy: query NVD API for the CVE, extract reference URLs,
-    // find a GitHub commit link, fetch its diff.
-    let api_url = format!(
-        "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
-    );
-    debug!(api_url, "fetching CVE from NVD");
+/// Get the NVD cache directory.
+fn nvd_cache_dir() -> Option<std::path::PathBuf> {
+    directories::ProjectDirs::from("dev", "naptrace", "naptrace")
+        .map(|d| d.cache_dir().join("nvd"))
+}
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .get(&api_url)
-        .header("User-Agent", "naptrace")
-        .send()
-        .await
-        .context("failed to fetch CVE from NVD")?;
+/// Check the NVD cache for a previously fetched CVE response.
+fn nvd_cache_get(cve_id: &str) -> Option<serde_json::Value> {
+    let dir = nvd_cache_dir()?;
+    let path = dir.join(format!("{cve_id}.json"));
+    let content = std::fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&content).ok()
+}
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        bail!("NVD API returned {status} for {cve_id}");
+/// Store an NVD response in the cache.
+fn nvd_cache_put(cve_id: &str, json: &serde_json::Value) {
+    if let Some(dir) = nvd_cache_dir() {
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join(format!("{cve_id}.json"));
+        let _ = std::fs::write(&path, serde_json::to_string(json).unwrap_or_default());
     }
+}
 
-    let json: serde_json::Value = resp
-        .json()
-        .await
-        .context("failed to parse NVD response")?;
+/// Fetch a CVE's patch from GitHub advisories or NVD references.
+/// Caches NVD responses to disk. Rate-limits to 5 requests per 30 seconds.
+async fn fetch_cve_patch(cve_id: &str) -> Result<String> {
+    // Check cache first
+    let json = if let Some(cached) = nvd_cache_get(cve_id) {
+        debug!(cve_id, "using cached NVD response");
+        cached
+    } else {
+        let api_url = format!(
+            "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
+        );
+        debug!(api_url, "fetching CVE from NVD");
+
+        let client = reqwest::Client::new();
+        let resp = client
+            .get(&api_url)
+            .header("User-Agent", "naptrace")
+            .send()
+            .await
+            .context("failed to fetch CVE from NVD")?;
+
+        if resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            // NVD rate limit: wait and retry once
+            debug!("NVD rate limited — waiting 6 seconds");
+            tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+            let resp = client
+                .get(&api_url)
+                .header("User-Agent", "naptrace")
+                .send()
+                .await
+                .context("failed to retry NVD fetch")?;
+            if !resp.status().is_success() {
+                bail!("NVD API returned {} for {cve_id} (after retry)", resp.status());
+            }
+            let json: serde_json::Value = resp.json().await.context("failed to parse NVD response")?;
+            nvd_cache_put(cve_id, &json);
+            json
+        } else if !resp.status().is_success() {
+            let status = resp.status();
+            bail!("NVD API returned {status} for {cve_id}");
+        } else {
+            let json: serde_json::Value = resp.json().await.context("failed to parse NVD response")?;
+            nvd_cache_put(cve_id, &json);
+            json
+        }
+    };
 
     // Extract reference URLs and find a GitHub commit
     let references = json["vulnerabilities"][0]["cve"]["references"]

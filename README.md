@@ -1,23 +1,38 @@
-# naptrace
+<p align="center">
+<pre>
+                         __
+    ____  ____ ______   / /__________ ________
+   / __ \/ __ `/ __ \ / __/ ___/ __ `/ ___/ _ \
+  / / / / /_/ / /_/ // /_/ /  / /_/ / /__/  __/
+ /_/ /_/\__,_/ .___/ \__/_/   \__,_/\___/\___/
+            /_/
+         variant analysis, open-sourced.
+</pre>
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> &bull;
+  <a href="#usage">Usage</a> &bull;
+  <a href="#how-it-works">How it works</a> &bull;
+  <a href="#why-this-exists">Why</a> &bull;
+  <a href="LICENSE">Apache-2.0</a>
+</p>
+
+<p align="center">
+  <img src="docs/demo.gif" alt="naptrace demo" width="700">
+</p>
+
+Feed naptrace a CVE patch. It finds every structural twin of that bug across your codebase.
 
 ```
 $ naptrace hunt file:cve_2025_6965.patch ./target-project
 
-naptrace hunt
-────────────────────────────────────────────────────────────
-  patch: file:cve_2025_6965.patch
-  language: c
-  diff: 1 file(s), 3 hunk(s)
-────────────────────────────────────────────────────────────
-  ~ src/vdbe.c [c]
-    hunk 1: @@ -3837,10 +3837,12 @@  (4 removed, 6 added)
-    hunk 2: @@ -3855,9 +3857,11 @@  (3 removed, 5 added)
-    hunk 3: @@ -3872,9 +3876,11 @@  (3 removed, 5 added)
-
-  [signature] distilled in 8.5s — INTEGER_OVERFLOW (10/10)
-  [candidates] 5 candidates in 9.0s
-  [cpg] 5 candidates sliced (19.0s)
-  [reason] 5 findings (29.3s)
+  [1/6] ingesting patch...              done (0.0s)
+  [2/6] distilling signature...         INTEGER_OVERFLOW (10/10)
+  [3/6] retrieving candidates (K=5)...  5 candidates
+  [4/6] slicing CPG paths...            5 sliced
+  [5/6] reasoning over candidates...    3 findings
+  [6/6] report
 
   >> FEASIBLE   src/math.c:4-7    [unsafe_add]
      Unchecked integer addition — same pattern as CVE-2025-6965.
@@ -32,7 +47,6 @@ naptrace hunt
      confidence: 4/10    similarity: 64%
 
   summary: 2 feasible, 1 needs_check, 2 infeasible
-  total elapsed: 29.3s
 ```
 
 ## Install
@@ -71,25 +85,25 @@ Naptrace finds every function in your codebase with the same unchecked-arithmeti
 
 ```
   naptrace hunt <patch> <target>
-         │
-  ┌──────┴──────┐
-  │  1. Ingest  │  Parse patch from CVE ID, git commit, diff file, or PR URL
-  └──────┬──────┘
-  ┌──────┴──────┐
-  │ 2. Distill  │  LLM extracts structural vulnerability signature
-  └──────┬──────┘
-  ┌──────┴──────┐
-  │ 3. Retrieve │  tree-sitter + embeddings find top-K similar functions
-  └──────┬──────┘
-  ┌──────┴──────┐
-  │  4. Slice   │  Joern CPG paths for each candidate (auto-installs)
-  └──────┬──────┘
-  ┌──────┴──────┐
-  │  5. Reason  │  LLM verdict: feasible / infeasible / needs_check
-  └──────┬──────┘
-  ┌──────┴──────┐
-  │  6. Report  │  SARIF 2.1.0 + terminal output
-  └──────┴──────┘
+         |
+  +------+------+
+  |  1. Ingest  |  Parse patch from CVE ID, git commit, diff file, or PR URL
+  +------+------+
+  +------+------+
+  | 2. Distill  |  LLM extracts structural vulnerability signature
+  +------+------+
+  +------+------+
+  | 3. Retrieve |  tree-sitter + embeddings find top-K similar functions
+  +------+------+
+  +------+------+
+  |  4. Slice   |  Joern CPG paths for each candidate (auto-installs)
+  +------+------+
+  +------+------+
+  |  5. Reason  |  LLM verdict: feasible / infeasible / needs_check
+  +------+------+
+  +------+------+
+  |  6. Report  |  SARIF 2.1.0 + terminal output
+  +------+------+
 ```
 
 ## Usage
@@ -113,13 +127,14 @@ naptrace hunt --reasoner ollama cve:CVE-2025-6965 .
 # SARIF output for CI
 naptrace hunt cve:CVE-2025-6965 . --output sarif > findings.sarif
 
+# Replay a finding with full trace
+naptrace explain <finding-id>
+
 # Check your setup
 naptrace doctor
 ```
 
 ## GitHub Action
-
-Generate a starter workflow:
 
 ```sh
 naptrace init-action
@@ -150,7 +165,7 @@ Local mode via Ollama is a first-class citizen. No signup, no API keys, no cloud
 
 | CVE | Bug class | Language | Status |
 |-----|-----------|----------|--------|
-| CVE-2025-6965 | INTEGER_OVERFLOW | C | Showcase |
+| CVE-2025-6965 | INTEGER_OVERFLOW | C | Verified |
 
 Full harness: [`benchmarks/run.sh`](benchmarks/run.sh)
 

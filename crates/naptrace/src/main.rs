@@ -1,14 +1,25 @@
 mod doctor;
+mod explain;
 mod hunt;
 
 use clap::{Parser, Subcommand};
+
+const BANNER: &str = r#"
+                     __
+    ____  ____ ___  / /__________ ________
+   / __ \/ __ `/ _ \/ __/ ___/ __ `/ ___/ _ \
+  / / / / /_/ /  __/ /_/ /  / /_/ / /__/  __/
+ /_/ /_/\__,_/ .___/\__/_/   \__,_/\___/\___/
+            /_/
+"#;
 
 #[derive(Parser)]
 #[command(
     name = "naptrace",
     about = "Variant analysis, open-sourced. Feed a CVE patch, find its structural twins.",
     version,
-    propagate_version = true
+    propagate_version = true,
+    before_help = BANNER,
 )]
 struct Cli {
     #[command(subcommand)]
@@ -76,8 +87,16 @@ enum Commands {
 
     /// Replay the LLM call for a finding with full trace
     Explain {
-        /// Finding ID to explain
+        /// Finding ID (file:line, e.g. src/math.c:4)
         finding_id: String,
+
+        /// LLM provider
+        #[arg(long, default_value = "anthropic")]
+        reasoner: String,
+
+        /// Override model
+        #[arg(long)]
+        model: Option<String>,
     },
 
     /// Run the public benchmark against this build
@@ -129,9 +148,12 @@ async fn main() -> anyhow::Result<()> {
             })
             .await
         }
-        Commands::Explain { .. } => {
-            eprintln!("explain is not yet implemented");
-            std::process::exit(2);
+        Commands::Explain {
+            finding_id,
+            reasoner,
+            model,
+        } => {
+            explain::run(&finding_id, &reasoner, model.as_deref()).await
         }
         Commands::Bench => {
             println!("Running naptrace benchmark harness...\n");
