@@ -1,0 +1,52 @@
+name: 'Naptrace Variant Analysis'
+description: 'Hunt for structural twins of known CVEs in your codebase'
+inputs:
+  patch:
+    description: 'Patch source: cve:CVE-XXXX-XXXXX, repo@sha, file:patch.diff, or pr:url'
+    required: true
+  target:
+    description: 'Target directory to scan'
+    required: false
+    default: '.'
+  reasoner:
+    description: 'LLM provider: anthropic, openai, or ollama'
+    required: false
+    default: 'anthropic'
+  api-key:
+    description: 'API key for the chosen LLM provider'
+    required: false
+  top-k:
+    description: 'Number of candidate sites to retrieve'
+    required: false
+    default: '50'
+  severity-floor:
+    description: 'Minimum severity to report: low, medium, high, critical'
+    required: false
+    default: 'medium'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install naptrace
+      shell: bash
+      run: |
+        curl -sSL naptrace.dev/install.sh | sh
+        echo "$HOME/.naptrace/bin" >> $GITHUB_PATH
+
+    - name: Run variant analysis
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.api-key }}
+      run: |
+        naptrace hunt \
+          --reasoner ${{ inputs.reasoner }} \
+          --top-k ${{ inputs.top-k }} \
+          --severity-floor ${{ inputs.severity-floor }} \
+          --output sarif \
+          ${{ inputs.patch }} \
+          ${{ inputs.target }} > naptrace-results.sarif
+
+    - name: Upload SARIF
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: naptrace-results.sarif

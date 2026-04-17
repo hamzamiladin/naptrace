@@ -1,0 +1,42 @@
+[package]
+name = "naptrace-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Core pipeline for Naptrace variant analysis"
+
+[dependencies]
+naptrace-joern.workspace = true
+naptrace-embed.workspace = true
+naptrace-llm.workspace = true
+tokio.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+tree-sitter.workspace = true
+tree-sitter-c.workspace = true
+tree-sitter-cpp.workspace = true
+tree-sitter-java.workspace = true
+tree-sitter-python.workspace = true
+tree-sitter-javascript.workspace = true
+tree-sitter-typescript.workspace = true
+tree-sitter-go.workspace = true
+tree-sitter-rust.workspace = true
+gix.workspace = true
+unidiff.workspace = true
+reqwest.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+sha2.workspace = true
+directories.workspace = true
+tempfile.workspace = true
+walkdir.workspace = true
+once_cell.workspace = true
+
+[dev-dependencies]
+insta = "1"
+proptest = "1"
+wiremock = "0.6"

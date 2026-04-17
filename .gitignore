@@ -1,0 +1,31 @@
+# Build
+/target
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Claude Code / tooling
+.claude-flow/
+.claude/
+.swarm/
+.mcp.json
+CLAUDE.md
+
+# Naptrace runtime
+*.cpg
+*.bin

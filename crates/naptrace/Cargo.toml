@@ -1,0 +1,28 @@
+[package]
+name = "naptrace"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Variant analysis, open-sourced. Feed a CVE patch, find its structural twins."
+default-run = "naptrace"
+
+[[bin]]
+name = "naptrace"
+path = "src/main.rs"
+
+[dependencies]
+naptrace-core.workspace = true
+naptrace-joern.workspace = true
+naptrace-embed.workspace = true
+naptrace-llm.workspace = true
+clap.workspace = true
+colored.workspace = true
+indicatif.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+directories.workspace = true

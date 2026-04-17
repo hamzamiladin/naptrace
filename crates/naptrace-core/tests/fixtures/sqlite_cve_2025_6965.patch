@@ -1,0 +1,69 @@
+From abc1234567890 Mon Sep 01 00:00:00 2025
+From: sqlite-dev <drh@sqlite.org>
+Date: Mon, 1 Jul 2025 12:00:00 +0000
+Subject: [PATCH] Fix integer overflow in OP_Add and related opcodes
+
+The OP_Add, OP_Subtract, and OP_Multiply opcodes in the VDBE did not
+check for integer overflow when operating on 64-bit signed integers.
+This could lead to incorrect results or exploitable conditions when
+processing crafted SQL expressions.
+
+Use the overflow-checking functions sqlite3AddInt64, sqlite3SubInt64,
+and sqlite3MulInt64 instead of raw arithmetic.
+
+CVE-2025-6965
+---
+ src/vdbe.c | 24 +++++++++++++-----------
+ 1 file changed, 13 insertions(+), 11 deletions(-)
+
+diff --git a/src/vdbe.c b/src/vdbe.c
+index abc1234..def5678 100644
+--- a/src/vdbe.c
++++ b/src/vdbe.c
+@@ -3837,10 +3837,12 @@ case OP_Add: {
+     pIn1 = &aMem[pOp->p1];
+     pIn2 = &aMem[pOp->p2];
+     if( (type1 & type2 & MEM_Int)!=0 ){
+-      iA = pIn1->u.i;
+-      iB = pIn2->u.i;
+-      iResult = iA + iB;
+-      if( (iResult ^ iA) >= 0 || (iResult ^ iB) >= 0 ){
++      iA = pIn1->u.i;
++      iB = pIn2->u.i;
++      if( sqlite3AddInt64(&iResult, iA, iB) ){
++        goto fp_math;
++      }
++      if( 1 ){
+         pOut = &aMem[pOp->p3];
+         MemSetTypeFlag(pOut, MEM_Int);
+         pOut->u.i = iResult;
+@@ -3855,9 +3857,11 @@ case OP_Subtract: {
+     pIn1 = &aMem[pOp->p1];
+     pIn2 = &aMem[pOp->p2];
+     if( (type1 & type2 & MEM_Int)!=0 ){
+-      iA = pIn1->u.i;
+-      iB = pIn2->u.i;
+-      iResult = iA - iB;
++      iA = pIn1->u.i;
++      iB = pIn2->u.i;
++      if( sqlite3SubInt64(&iResult, iA, iB) ){
++        goto fp_math;
++      }
+       pOut = &aMem[pOp->p3];
+       MemSetTypeFlag(pOut, MEM_Int);
+       pOut->u.i = iResult;
+@@ -3872,9 +3876,11 @@ case OP_Multiply: {
+     pIn1 = &aMem[pOp->p1];
+     pIn2 = &aMem[pOp->p2];
+     if( (type1 & type2 & MEM_Int)!=0 ){
+-      iA = pIn1->u.i;
+-      iB = pIn2->u.i;
+-      iResult = iA * iB;
++      iA = pIn1->u.i;
++      iB = pIn2->u.i;
++      if( sqlite3MulInt64(&iResult, iA, iB) ){
++        goto fp_math;
++      }
+       pOut = &aMem[pOp->p3];
+       MemSetTypeFlag(pOut, MEM_Int);
+       pOut->u.i = iResult;

@@ -1,0 +1,29 @@
+[package]
+name = "naptrace-embed"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Embedding backends (Voyage API + local ONNX) for Naptrace"
+
+[features]
+default = []
+vectordb = ["lancedb", "arrow-array", "arrow-schema"]
+onnx = ["ort", "tokenizers"]
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+directories.workspace = true
+
+# Optional — enabled when the full pipeline is needed
+lancedb = { workspace = true, optional = true }
+arrow-array = { workspace = true, optional = true }
+arrow-schema = { workspace = true, optional = true }
+ort = { workspace = true, optional = true }
+tokenizers = { workspace = true, optional = true }

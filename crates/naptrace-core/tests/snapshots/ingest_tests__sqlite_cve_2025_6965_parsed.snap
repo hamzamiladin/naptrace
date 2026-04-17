@@ -1,0 +1,73 @@
+---
+source: crates/naptrace-core/tests/ingest_tests.rs
+expression: json
+---
+[
+  {
+    "path": "src/vdbe.c",
+    "pre_patch_source": null,
+    "post_patch_source": null,
+    "hunks": [
+      {
+        "old_start": 3837,
+        "old_lines": 10,
+        "new_start": 3837,
+        "new_lines": 12,
+        "content": "     pIn1 = &aMem[pOp->p1];\n     pIn2 = &aMem[pOp->p2];\n     if( (type1 & type2 & MEM_Int)!=0 ){\n-      iA = pIn1->u.i;\n-      iB = pIn2->u.i;\n-      iResult = iA + iB;\n-      if( (iResult ^ iA) >= 0 || (iResult ^ iB) >= 0 ){\n+      iA = pIn1->u.i;\n+      iB = pIn2->u.i;\n+      if( sqlite3AddInt64(&iResult, iA, iB) ){\n+        goto fp_math;\n+      }\n+      if( 1 ){\n         pOut = &aMem[pOp->p3];\n         MemSetTypeFlag(pOut, MEM_Int);\n         pOut->u.i = iResult;\n",
+        "removed_lines": [
+          "      iA = pIn1->u.i;",
+          "      iB = pIn2->u.i;",
+          "      iResult = iA + iB;",
+          "      if( (iResult ^ iA) >= 0 || (iResult ^ iB) >= 0 ){"
+        ],
+        "added_lines": [
+          "      iA = pIn1->u.i;",
+          "      iB = pIn2->u.i;",
+          "      if( sqlite3AddInt64(&iResult, iA, iB) ){",
+          "        goto fp_math;",
+          "      }",
+          "      if( 1 ){"
+        ]
+      },
+      {
+        "old_start": 3855,
+        "old_lines": 9,
+        "new_start": 3857,
+        "new_lines": 11,
+        "content": "     pIn1 = &aMem[pOp->p1];\n     pIn2 = &aMem[pOp->p2];\n     if( (type1 & type2 & MEM_Int)!=0 ){\n-      iA = pIn1->u.i;\n-      iB = pIn2->u.i;\n-      iResult = iA - iB;\n+      iA = pIn1->u.i;\n+      iB = pIn2->u.i;\n+      if( sqlite3SubInt64(&iResult, iA, iB) ){\n+        goto fp_math;\n+      }\n       pOut = &aMem[pOp->p3];\n       MemSetTypeFlag(pOut, MEM_Int);\n       pOut->u.i = iResult;\n",
+        "removed_lines": [
+          "      iA = pIn1->u.i;",
+          "      iB = pIn2->u.i;",
+          "      iResult = iA - iB;"
+        ],
+        "added_lines": [
+          "      iA = pIn1->u.i;",
+          "      iB = pIn2->u.i;",
+          "      if( sqlite3SubInt64(&iResult, iA, iB) ){",
+          "        goto fp_math;",
+          "      }"
+        ]
+      },
+      {
+        "old_start": 3872,
+        "old_lines": 9,
+        "new_start": 3876,
+        "new_lines": 11,
+        "content": "     pIn1 = &aMem[pOp->p1];\n     pIn2 = &aMem[pOp->p2];\n     if( (type1 & type2 & MEM_Int)!=0 ){\n-      iA = pIn1->u.i;\n-      iB = pIn2->u.i;\n-      iResult = iA * iB;\n+      iA = pIn1->u.i;\n+      iB = pIn2->u.i;\n+      if( sqlite3MulInt64(&iResult, iA, iB) ){\n+        goto fp_math;\n+      }\n       pOut = &aMem[pOp->p3];\n       MemSetTypeFlag(pOut, MEM_Int);\n       pOut->u.i = iResult;\n",
+        "removed_lines": [
+          "      iA = pIn1->u.i;",
+          "      iB = pIn2->u.i;",
+          "      iResult = iA * iB;"
+        ],
+        "added_lines": [
+          "      iA = pIn1->u.i;",
+          "      iB = pIn2->u.i;",
+          "      if( sqlite3MulInt64(&iResult, iA, iB) ){",
+          "        goto fp_math;",
+          "      }"
+        ]
+      }
+    ],
+    "language": "c"
+  }
+]

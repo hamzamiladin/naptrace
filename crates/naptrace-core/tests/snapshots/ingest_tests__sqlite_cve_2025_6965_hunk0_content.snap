@@ -1,0 +1,20 @@
+---
+source: crates/naptrace-core/tests/ingest_tests.rs
+expression: "files[0].hunks[0].content"
+---
+     pIn1 = &aMem[pOp->p1];
+     pIn2 = &aMem[pOp->p2];
+     if( (type1 & type2 & MEM_Int)!=0 ){
+-      iA = pIn1->u.i;
+-      iB = pIn2->u.i;
+-      iResult = iA + iB;
+-      if( (iResult ^ iA) >= 0 || (iResult ^ iB) >= 0 ){
++      iA = pIn1->u.i;
++      iB = pIn2->u.i;
++      if( sqlite3AddInt64(&iResult, iA, iB) ){
++        goto fp_math;
++      }
++      if( 1 ){
+         pOut = &aMem[pOp->p3];
+         MemSetTypeFlag(pOut, MEM_Int);
+         pOut->u.i = iResult;
