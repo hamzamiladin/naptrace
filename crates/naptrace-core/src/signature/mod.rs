@@ -15,6 +15,18 @@ pub struct VulnSignature {
     pub nl_brief: String,
     pub bug_class: String,
     pub confidence: u8,
+    /// Domain-independent description of the violated invariant.
+    #[serde(default)]
+    pub abstract_invariant: Option<String>,
+    /// What the FIXED code looks like (to distinguish sanitizers from vulnerabilities).
+    #[serde(default)]
+    pub negative_pattern: Option<String>,
+    /// What kind of input feeds the vulnerability (e.g., "user-controlled integer from SQL expression").
+    #[serde(default)]
+    pub source_description: Option<String>,
+    /// What the unchecked result is used for (e.g., "array index", "buffer size", "loop bound").
+    #[serde(default)]
+    pub sink_description: Option<String>,
 }
 
 /// Distill a vulnerability signature from a VulnSeed using an LLM.

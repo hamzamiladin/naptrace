@@ -96,7 +96,7 @@ pub fn query_paths(
     // 2. Finds the target function
     // 3. Extracts data-flow paths reaching it
     // 4. Outputs JSON
-    let script = build_query_script(function_name, file_path, start_line);
+    let script = build_query_script(cpg_path, function_name, file_path, start_line);
 
     let temp_script =
         tempfile::NamedTempFile::new().context("failed to create temp script file")?;
@@ -110,7 +110,6 @@ pub fn query_paths(
 
     let output = std::process::Command::new(&joern)
         .args(["--script", temp_script.path().to_str().unwrap_or("")])
-        .args(["--cpg", cpg_path.to_str().unwrap_or("")])
         .output()
         .with_context(|| format!("failed to run joern at {}", joern.display()))?;
 
@@ -124,12 +123,30 @@ pub fn query_paths(
     parse_query_output(&stdout)
 }
 
-/// Build a Joern Scala script to extract paths for a function.
-fn build_query_script(function_name: &str, file_path: &str, start_line: u32) -> String {
+/// Build a Joern Scala script to extract dataflow paths for a function.
+fn build_query_script(
+    cpg_path: &Path,
+    function_name: &str,
+    file_path: &str,
+    start_line: u32,
+) -> String {
+    let cpg_escaped = cpg_path.display().to_string().replace('\\', "\\\\");
     format!(
         r#"
-import io.joern.dataflowengineoss.language._
 import io.shiftleft.semanticcpg.language._
+
+// Load CPG and apply dataflow overlay
+importCpg("{cpg_escaped}")
+
+try {{
+  run.ossdataflow
+}} catch {{
+  case _: Throwable => // dataflow overlay may already be applied
+}}
+
+import io.joern.dataflowengineoss.language._
+import io.joern.dataflowengineoss.queryengine.{{EngineContext, EngineConfig}}
+implicit val engineContext: EngineContext = EngineContext(EngineConfig(maxCallDepth = 4))
 
 // Find the target method
 val targetMethods = cpg.method.nameExact("{function_name}")
@@ -137,51 +154,58 @@ val targetMethods = cpg.method.nameExact("{function_name}")
   .l
 
 val results = targetMethods.flatMap {{ method =>
-  // Get parameters as sources
+  // --- Dataflow analysis ---
+  val sources = method.parameter
+  val sinks = method.call.argument
+
+  val flows = try {{
+    sinks.reachableByFlows(sources).l
+  }} catch {{
+    case _: Throwable => List()
+  }}
+
+  val flowNodes = flows.flatMap {{ flow =>
+    flow.elements.l.map {{ elem =>
+      s"""{{"file":"${{elem.file.name.headOption.getOrElse("")}}","line":${{elem.lineNumber.getOrElse(0)}},"code":"${{elem.code.take(100).replace("\"", "\\\"").replace("\n", " ")}}","node_type":"dataflow"}}"""
+    }}
+  }}.distinct
+
+  // --- Structural fallback ---
   val params = method.parameter.l.map {{ p =>
     s"""{{"file":"${{p.filename}}","line":${{p.lineNumber.getOrElse(0)}},"code":"${{p.code.replace("\"", "\\\"")}}","node_type":"parameter"}}"""
   }}
 
-  // Get callers
-  val callers = method.callIn.l.map {{ c =>
+  val callers = method.callIn.l.take(5).map {{ c =>
     s"""{{"file":"${{c.filename}}","line":${{c.lineNumber.getOrElse(0)}},"code":"${{c.code.take(100).replace("\"", "\\\"")}}","node_type":"call_site"}}"""
   }}
 
-  // Get local variables / assignments in the method
-  val locals = method.local.l.map {{ l =>
-    s"""{{"file":"${{l.filename}}","line":${{l.lineNumber.getOrElse(0)}},"code":"${{l.code.take(100).replace("\"", "\\\"")}}","node_type":"local"}}"""
-  }}
-
-  // Check for sanitizer-like patterns (bounds checks, null checks)
-  val conditions = method.ifBlock.condition.l.map {{ c =>
-    c.code.take(100)
-  }}
-
+  // Sanitizer detection
+  val conditions = method.ifBlock.condition.l.map(_.code.take(100))
   val sanitizers = conditions.filter(c =>
     c.contains(">=") || c.contains("<=") || c.contains("NULL") ||
-    c.contains("overflow") || c.contains("check") || c.contains("valid") ||
-    c.contains("MAX") || c.contains("MIN") || c.contains("size") ||
-    c.contains("bound") || c.contains("limit") || c.contains("assert")
+    c.contains("overflow") || c.contains("check") || c.contains("MAX") ||
+    c.contains("MIN") || c.contains("bound") || c.contains("assert")
   )
 
-  // Extract symbolic constraints from conditions and type info
-  val typeConstraints = method.parameter.l.flatMap {{ p =>
+  // Type constraints
+  val constraints = method.parameter.l.flatMap {{ p =>
     p.typeFullName.headOption.map(t => s"param ${{p.name}} : $t")
-  }}
+  }} ++ conditions.map(c => s"branch: $c")
 
-  val branchConstraints = conditions.map(c => s"branch: $c")
-
-  val allConstraints = (typeConstraints ++ branchConstraints).map(c =>
+  val allConstraints = constraints.map(c =>
     s"\"${{c.take(120).replace("\"", "\\\"").replace("\n", " ")}}\""
   )
+
+  val pathNodes = if (flowNodes.nonEmpty) flowNodes else (callers ++ params)
 
   List(s"""{{
     "sources": [${{params.mkString(",")}}],
     "sink": {{"file":"${{method.filename}}","line":{start_line},"code":"${{method.name}}","node_type":"function"}},
-    "path_nodes": [${{(callers ++ locals).mkString(",")}}],
+    "path_nodes": [${{pathNodes.mkString(",")}}],
     "sanitizers": [${{sanitizers.map(s => s"\"${{s.replace("\"", "\\\"")}}\"").mkString(",")}}],
     "constraints": [${{allConstraints.mkString(",")}}]
   }}"#,
+        cpg_escaped = cpg_escaped,
         function_name = function_name.replace('"', r#"\""#),
         file_path = file_path.replace('"', r#"\""#),
         start_line = start_line,

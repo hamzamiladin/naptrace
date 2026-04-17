@@ -174,6 +174,10 @@ mod tests {
             nl_brief: "Unchecked addition of user-controlled integers.".to_string(),
             bug_class: "INTEGER_OVERFLOW".to_string(),
             confidence: 8,
+            abstract_invariant: None,
+            negative_pattern: None,
+            source_description: None,
+            sink_description: None,
         };
 
         let query = build_query_text(&sig);

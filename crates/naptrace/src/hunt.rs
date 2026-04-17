@@ -207,6 +207,24 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     println!("{}", "─".repeat(60).dimmed());
 
+    // Stage 3.5: Rerank — filter sanitizers before expensive stages
+    let pb_rerank = ProgressBar::new_spinner();
+    pb_rerank.set_style(ProgressStyle::with_template("  [3.5/6] {msg:.cyan}").unwrap());
+    pb_rerank.set_message("reranking candidates (filtering sanitizers)...");
+    pb_rerank.enable_steady_tick(std::time::Duration::from_millis(100));
+
+    let candidates =
+        naptrace_core::rerank::rerank(candidates, &signature, llm.as_ref(), model_override).await?;
+
+    pb_rerank.finish_and_clear();
+
+    println!(
+        "\n  {} {} candidates after reranking",
+        "[rerank]".green(),
+        candidates.len(),
+    );
+    println!("{}", "─".repeat(60).dimmed());
+
     // Stage 4: Slice CPG paths
     let pb4 = ProgressBar::new_spinner();
     pb4.set_style(ProgressStyle::with_template("  [4/6] {msg:.cyan}").unwrap());

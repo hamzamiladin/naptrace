@@ -46,8 +46,12 @@ Respond with exactly this JSON structure and nothing else:
   ],
   "nl_brief": "One paragraph summarizing what the vulnerability is, why it is exploitable, and what the patch does to fix it. Written for a security engineer who has not seen this code before.",
   "bug_class": "UAF|OOB_READ|OOB_WRITE|INTEGER_OVERFLOW|INTEGER_UNDERFLOW|TYPE_CONFUSION|USE_AFTER_FREE|DOUBLE_FREE|NULL_DEREF|INJECTION|AUTHZ_BYPASS|PATH_TRAVERSAL|DESERIALIZATION|RACE_CONDITION|OTHER",
-  "confidence": 7
+  "confidence": 7,
+  "abstract_invariant": "A domain-independent description of the violated safety property. Example: 'Arithmetic result from untrusted input used for memory allocation size without overflow check'. This should be generalizable across projects.",
+  "negative_pattern": "What the FIXED code looks like as a pattern. Example: 'Call to overflow-checking function before using arithmetic result'. This helps distinguish sanitizers from vulnerabilities.",
+  "source_description": "What kind of input feeds the vulnerability. Example: 'User-controlled integer from SQL expression evaluation'.",
+  "sink_description": "What the unchecked result is used for. Example: 'Array index for memory access' or 'Buffer size for allocation'."
 }
 ```
 
-The `confidence` field is an integer from 0 to 10 indicating how confident you are in the accuracy of the extracted signature. Use 0-3 if the patch is ambiguous, 4-6 if the pattern is clear but context is limited, 7-10 if the vulnerability pattern is unambiguous.
+The `confidence` field is an integer from 0 to 10. The `abstract_invariant`, `negative_pattern`, `source_description`, and `sink_description` fields enable finding variants that are syntactically different but semantically equivalent.

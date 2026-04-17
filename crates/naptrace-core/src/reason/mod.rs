@@ -138,7 +138,80 @@ pub async fn reason(
         });
     }
 
-    Ok(results)
+    // Skeptical triage: review feasible verdicts with a follow-up challenge
+    let mut triaged = Vec::new();
+    for finding in results {
+        if finding.verdict.verdict == VerdictKind::Feasible && finding.verdict.confidence < 10 {
+            info!(
+                function = %finding.function_name,
+                "running skeptical triage on feasible verdict"
+            );
+
+            let triage_result = skeptical_triage(&finding, signature, llm, model, raw_diff).await;
+
+            match triage_result {
+                Ok(revised) => triaged.push(JudgedCandidate {
+                    verdict: revised,
+                    ..finding
+                }),
+                Err(_) => triaged.push(finding), // keep original on error
+            }
+        } else {
+            triaged.push(finding);
+        }
+    }
+
+    Ok(triaged)
+}
+
+/// Skeptical triage: challenge a feasible verdict by asking the LLM to find
+/// evidence that the defense DOES exist. If it can cite a specific line, downgrade.
+async fn skeptical_triage(
+    finding: &JudgedCandidate,
+    signature: &VulnSignature,
+    llm: &dyn naptrace_llm::LlmClient,
+    model: &str,
+    _raw_diff: &str,
+) -> Result<Verdict> {
+    let challenge = format!(
+        "A previous analysis found this function FEASIBLE for {}:\n\n\
+         Function: {} at {}:{}-{}\n\
+         Justification: {}\n\n\
+         YOUR TASK: Try to DISPROVE this finding. Look for:\n\
+         1. Does the function check for overflow/bounds BEFORE the arithmetic?\n\
+         2. Is the function itself a SANITIZER (its purpose is to detect/prevent the bug)?\n\
+         3. Are the types unsigned where modulo/division/bitwise ops are used (which cannot overflow)?\n\
+         4. Is there a wrapper function call that handles the check?\n\n\
+         Code:\n```\n{}\n```\n\n\
+         If you find a defense, respond with verdict=infeasible and cite the exact line.\n\
+         If you cannot find a defense, keep verdict=feasible.\n\
+         Respond with the standard JSON verdict format.",
+        signature.bug_class,
+        finding.function_name,
+        finding.file_path,
+        finding.start_line,
+        finding.end_line,
+        finding.verdict.justification,
+        finding.body,
+    );
+
+    let request = naptrace_llm::LlmRequest {
+        model: model.to_string(),
+        messages: vec![
+            naptrace_llm::Message::system(
+                "You are a skeptical security reviewer. Your job is to find reasons why a reported \
+                 vulnerability might be a false positive. Be thorough but honest — if the bug is \
+                 real, say so."
+                    .to_string(),
+            ),
+            naptrace_llm::Message::user(challenge),
+        ],
+        temperature: 0.1,
+        max_tokens: 1024,
+    };
+
+    let response = llm.complete(&request).await?;
+    parse_verdict(&response.content)
 }
 
 /// Build the user message for the reasoning prompt.

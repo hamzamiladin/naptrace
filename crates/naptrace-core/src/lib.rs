@@ -2,6 +2,7 @@ pub mod ingest;
 pub mod prompt;
 pub mod reason;
 pub mod report;
+pub mod rerank;
 pub mod retrieve;
 pub mod signature;
 pub mod slice;
