@@ -110,8 +110,10 @@ pub async fn rerank(
     for (i, (candidate, _penalty)) in scored.into_iter().enumerate() {
         let result = rerank_results.get(i);
 
+        // Only filter if explicitly classified as sanitizer
+        // Don't filter on low relevance alone — small models give unreliable scores
         let dominated = result
-            .map(|r| r.role == "sanitizer" || r.relevance < 4)
+            .map(|r| r.role == "sanitizer")
             .unwrap_or(false);
 
         if dominated {
