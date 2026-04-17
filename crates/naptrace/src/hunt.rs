@@ -7,6 +7,8 @@ pub struct HuntOptions {
     pub patch_source: String,
     pub target: String,
     pub explain_only: bool,
+    pub reasoner: String,
+    pub model: Option<String>,
 }
 
 pub async fn run(opts: HuntOptions) -> Result<()> {
@@ -14,87 +16,52 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     let pb = ProgressBar::new(6);
     pb.set_style(
-        ProgressStyle::with_template(
-            "  [{pos}/{len}] {msg:.cyan}",
-        )
-        .unwrap(),
+        ProgressStyle::with_template("  [{pos}/{len}] {msg:.cyan}").unwrap(),
     );
 
     // Stage 1: Ingest
     pb.set_position(1);
     pb.set_message("ingesting patch...");
 
-    let seed = naptrace_core::ingest::ingest(&opts.patch_source, &opts.target).await?;
+    let seed =
+        naptrace_core::ingest::ingest(&opts.patch_source, &opts.target).await?;
 
-    pb.set_message("ingesting patch... done");
+    let ingest_elapsed = start.elapsed();
+    pb.set_message(format!("ingesting patch... done ({:.1}s)", ingest_elapsed.as_secs_f64()));
 
+    // Print ingest summary
     pb.finish_and_clear();
-
-    let elapsed = start.elapsed();
-
-    // Print summary
-    println!(
-        "\n{}",
-        "naptrace hunt".bold()
-    );
+    println!("\n{}", "naptrace hunt".bold());
     println!("{}", "─".repeat(60).dimmed());
 
-    println!(
-        "  {} {}",
-        "patch:".dimmed(),
-        opts.patch_source
-    );
-
+    println!("  {} {}", "patch:".dimmed(), opts.patch_source);
     if let Some(ref cve) = seed.cve_id {
         println!("  {} {}", "cve:".dimmed(), cve);
     }
-
-    println!(
-        "  {} {}",
-        "language:".dimmed(),
-        seed.language
-    );
-
+    println!("  {} {}", "language:".dimmed(), seed.language);
     println!(
         "  {} {} file(s), {} hunk(s)",
         "diff:".dimmed(),
         seed.patched_files.len(),
         seed.patched_files.iter().map(|f| f.hunks.len()).sum::<usize>()
     );
-
     if let Some(ref msg) = seed.commit_msg {
         let first_line = msg.lines().next().unwrap_or(msg);
-        println!(
-            "  {} {}",
-            "commit:".dimmed(),
-            first_line
-        );
+        println!("  {} {}", "commit:".dimmed(), first_line);
     }
 
     println!("{}", "─".repeat(60).dimmed());
 
-    // Print patched files
     for file in &seed.patched_files {
-        let lang = file
-            .language
-            .map(|l| format!("[{l}]"))
-            .unwrap_or_default();
-
-        println!(
-            "  {} {} {}",
-            "~".yellow(),
-            file.path,
-            lang.dimmed()
-        );
+        let lang = file.language.map(|l| format!("[{l}]")).unwrap_or_default();
+        println!("  {} {} {}", "~".yellow(), file.path, lang.dimmed());
 
         for (i, hunk) in file.hunks.iter().enumerate() {
             println!(
                 "    hunk {}: @@ -{},{} +{},{} @@  ({} removed, {} added)",
                 i + 1,
-                hunk.old_start,
-                hunk.old_lines,
-                hunk.new_start,
-                hunk.new_lines,
+                hunk.old_start, hunk.old_lines,
+                hunk.new_start, hunk.new_lines,
                 hunk.removed_lines.len().to_string().red(),
                 hunk.added_lines.len().to_string().green(),
             );
@@ -105,33 +72,103 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     if opts.explain_only {
         println!(
-            "\n  {} ingested in {:.1}s — {} mode, stopping here.",
+            "\n  {} ingested in {:.1}s — stopping before LLM calls.",
             "[explain-only]".yellow(),
-            elapsed.as_secs_f64(),
-            "--explain-only".dimmed(),
+            ingest_elapsed.as_secs_f64(),
         );
-
-        // Print what would be sent to Stage 2
-        println!(
-            "\n  {} the distilled signature for this patch would be computed next.",
-            "next:".dimmed(),
-        );
-        println!(
-            "  {} stages 2-6 require a target repo and configured LLM.",
-            "note:".dimmed(),
-        );
-    } else {
-        println!(
-            "\n  {} stages 2-6 are not yet implemented.",
-            "[todo]".yellow(),
-        );
-        println!(
-            "  ingested in {:.1}s. run with {} to see parsed output.",
-            elapsed.as_secs_f64(),
-            "--explain-only".dimmed(),
-        );
+        println!();
+        return Ok(());
     }
 
+    // Stage 2: Distill signature
+    let pb2 = ProgressBar::new_spinner();
+    pb2.set_style(ProgressStyle::with_template("  [2/6] {msg:.cyan}").unwrap());
+    pb2.set_message("distilling vulnerability signature...");
+    pb2.enable_steady_tick(std::time::Duration::from_millis(100));
+
+    let provider = naptrace_llm::Provider::from_str(&opts.reasoner)?;
+    let llm = naptrace_llm::create_client(provider).await?;
+
+    // Use explicit --model, or fall back to the provider's default
+    // (don't use the prompt template's model for non-Anthropic providers)
+    let model_override = opts
+        .model
+        .as_deref()
+        .or_else(|| {
+            if provider != naptrace_llm::Provider::Anthropic {
+                Some(provider.default_model())
+            } else {
+                None // let the prompt template decide
+            }
+        });
+    let signature = naptrace_core::signature::distill(&seed, llm.as_ref(), model_override).await?;
+
+    let distill_elapsed = start.elapsed();
+    pb2.finish_and_clear();
+
+    println!("\n  {} distilled in {:.1}s", "[signature]".green(), distill_elapsed.as_secs_f64());
+    println!("{}", "─".repeat(60).dimmed());
+    println!("  {} {}", "bug class:".dimmed(), signature.bug_class.yellow());
+    println!("  {} {}/10", "confidence:".dimmed(), signature.confidence);
+    println!("  {} {}", "root cause:".dimmed(), signature.root_cause);
     println!();
+    println!("  {}", "pattern:".dimmed());
+    println!("    {}", signature.vulnerable_pattern);
+    println!();
+    println!("  {}", "brief:".dimmed());
+    for line in textwrap(&signature.nl_brief, 70) {
+        println!("    {line}");
+    }
+
+    if !signature.sanitizer_gaps.is_empty() {
+        println!();
+        println!("  {}", "sanitizer gaps:".dimmed());
+        for gap in &signature.sanitizer_gaps {
+            println!("    - {gap}");
+        }
+    }
+
+    if !signature.required_preconditions.is_empty() {
+        println!();
+        println!("  {}", "preconditions:".dimmed());
+        for pre in &signature.required_preconditions {
+            println!("    - {pre}");
+        }
+    }
+
+    println!("{}", "─".repeat(60).dimmed());
+
+    // Stages 3-6 not yet implemented
+    println!(
+        "\n  {} stages 3-6 (retrieve, slice, reason, report) not yet implemented.",
+        "[todo]".yellow(),
+    );
+    println!(
+        "  total elapsed: {:.1}s",
+        start.elapsed().as_secs_f64(),
+    );
+    println!();
+
     Ok(())
+}
+
+/// Simple word-wrapping at the given width.
+fn textwrap(text: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current = String::new();
+
+    for word in text.split_whitespace() {
+        if current.len() + word.len() + 1 > width && !current.is_empty() {
+            lines.push(current);
+            current = String::new();
+        }
+        if !current.is_empty() {
+            current.push(' ');
+        }
+        current.push_str(word);
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines
 }

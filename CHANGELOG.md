@@ -19,3 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `naptrace hunt --explain-only` shows parsed patch structure without running stages 2-6
 - 21 tests including insta snapshot tests against a fixed SQLite CVE patch
 - Bumped `rust-version` to 1.85 (clap 4.6 requires Rust edition 2024)
+- Stage 2 (Distill): LLM-powered vulnerability signature extraction with structured JSON output
+- LLM client implementations for Anthropic, OpenAI, and Ollama (local)
+- Prompt template loader with YAML frontmatter parsing and variable interpolation
+- Smart model defaults per provider — `--reasoner ollama` just works without `--model`
+- 28 tests total

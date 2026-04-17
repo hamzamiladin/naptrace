@@ -15,3 +15,11 @@
 - `naptrace hunt --explain-only` works end-to-end with local diff files.
 - 21 tests passing (13 unit + 8 integration with insta snapshots).
 - Next: Stage 2 (Distill) — extract structural vulnerability signatures via LLM.
+
+## 2026-04-17 — Stage 2 (Distill) complete
+
+- LLM clients for Anthropic, OpenAI, and Ollama implemented and tested.
+- Prompt template loader parses YAML frontmatter and interpolates variables.
+- Stage 2 calls the LLM, parses structured JSON signature response.
+- Verified end-to-end with Ollama (qwen2.5-coder:7b) on the SQLite fixture.
+- Next: Stage 3 (Retrieve) — embed and search for candidate sites.

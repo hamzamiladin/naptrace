@@ -1,4 +1,5 @@
 pub mod ingest;
+pub mod prompt;
 pub mod signature;
 pub mod retrieve;
 pub mod slice;

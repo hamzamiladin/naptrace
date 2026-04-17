@@ -104,12 +104,16 @@ async fn main() -> anyhow::Result<()> {
             patch_source,
             target,
             explain_only,
+            reasoner,
+            model,
             ..
         } => {
             hunt::run(hunt::HuntOptions {
                 patch_source,
                 target,
                 explain_only,
+                reasoner,
+                model,
             })
             .await
         }
