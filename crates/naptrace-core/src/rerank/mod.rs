@@ -112,9 +112,7 @@ pub async fn rerank(
 
         // Only filter if explicitly classified as sanitizer
         // Don't filter on low relevance alone — small models give unreliable scores
-        let dominated = result
-            .map(|r| r.role == "sanitizer")
-            .unwrap_or(false);
+        let dominated = result.map(|r| r.role == "sanitizer").unwrap_or(false);
 
         if dominated {
             info!(
