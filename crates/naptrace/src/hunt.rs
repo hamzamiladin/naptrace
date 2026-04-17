@@ -1,6 +1,7 @@
 use anyhow::Result;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::io::IsTerminal;
 use std::time::Instant;
 
 pub struct HuntOptions {
@@ -322,7 +323,7 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     // SARIF output
     if opts.output_format == "sarif"
-        || (opts.output_format == "auto" && !atty::is(atty::Stream::Stdout))
+        || (opts.output_format == "auto" && !std::io::stdout().is_terminal())
     {
         let sarif = naptrace_core::report::generate_sarif(&findings, seed.cve_id.as_deref());
         let json = serde_json::to_string_pretty(&sarif)?;

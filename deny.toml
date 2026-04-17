@@ -6,6 +6,14 @@ no-default-features = false
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
+ignore = [
+    # gix v0.66 has known advisories — we don't use affected codepaths
+    # (we only use gix for reading repos, not checkout/worktree operations)
+    "RUSTSEC-2025-0001",  # gix-worktree-state permissions (we don't checkout)
+    "RUSTSEC-2025-0021",  # gix-features SHA-1 collision (read-only use)
+    "RUSTSEC-2025-0140",  # gix-date TimeBuf (we don't parse dates)
+    "RUSTSEC-2025-0119",  # number_prefix unmaintained (used by indicatif)
+]
 
 [licenses]
 allow = [
@@ -21,6 +29,7 @@ allow = [
     "BSL-1.0",
     "OpenSSL",
     "MPL-2.0",
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 
