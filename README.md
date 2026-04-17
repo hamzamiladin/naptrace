@@ -167,7 +167,34 @@ Or add manually:
 | Anthropic | `--reasoner anthropic` | claude-opus-4-7 | `ANTHROPIC_API_KEY` |
 | OpenAI | `--reasoner openai` | gpt-4o | `OPENAI_API_KEY` |
 
-Local mode via Ollama and free cloud via Groq both work with zero cost. No credit card required.
+All providers have built-in rate limit retry with exponential backoff.
+
+### Setup
+
+```sh
+# Groq (recommended — free, fast, 70B model)
+export GROQ_API_KEY=gsk_...        # Get free key at console.groq.com
+
+# Ollama (fully local, no account needed)
+# Just install ollama — models download automatically on first run
+
+# Anthropic
+export ANTHROPIC_API_KEY=sk-ant-...  # console.anthropic.com
+
+# OpenAI
+export OPENAI_API_KEY=sk-...         # platform.openai.com
+```
+
+Run `naptrace doctor` to verify which providers are configured.
+
+## Tested Against
+
+| Codebase | Language | Files | Functions | Result |
+|----------|----------|-------|-----------|--------|
+| Redis | C | 131 | 5,335 | Found potential overflow in `checkUnsignedBitfieldOverflow` |
+| Flask | Python | ~50 | ~200 | 0 false positives (correctly rejected all) |
+| Gson | Java | ~100 | ~300 | 0 false positives (identified anti-deser guards) |
+| Custom C target | C | 1 | 5 | 3/3 vulnerable functions correctly identified |
 
 ## Benchmarks
 

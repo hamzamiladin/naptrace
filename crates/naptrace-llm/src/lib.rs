@@ -2,6 +2,7 @@ pub mod anthropic;
 pub mod groq;
 pub mod ollama;
 pub mod openai;
+pub mod retry;
 
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};

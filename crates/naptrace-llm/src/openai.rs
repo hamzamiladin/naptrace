@@ -19,7 +19,7 @@ struct ApiRequest {
     max_tokens: u32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct ApiMessage {
     role: String,
     content: String,
@@ -85,21 +85,21 @@ impl LlmClient for OpenAiClient {
                 max_tokens: request.max_tokens,
             };
 
-            let resp = self
-                .client
-                .post(API_URL)
-                .header("Authorization", format!("Bearer {}", self.api_key))
-                .header("Content-Type", "application/json")
-                .json(&body)
-                .send()
-                .await
-                .context("failed to send request to OpenAI API")?;
+            let api_key = self.api_key.clone();
+            let client = &self.client;
 
-            let status = resp.status();
-            if !status.is_success() {
-                let text = resp.text().await.unwrap_or_default();
-                anyhow::bail!("OpenAI API returned {status}: {text}");
-            }
+            let resp = crate::retry::send_with_retry(
+                client,
+                || {
+                    client
+                        .post(API_URL)
+                        .header("Authorization", format!("Bearer {api_key}"))
+                        .header("Content-Type", "application/json")
+                        .json(&body)
+                },
+                "OpenAI",
+            )
+            .await?;
 
             let api_resp: ApiResponse = resp
                 .json()

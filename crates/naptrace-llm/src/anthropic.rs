@@ -22,7 +22,7 @@ struct ApiRequest {
     temperature: f32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct ApiMessage {
     role: String,
     content: String,
@@ -67,7 +67,6 @@ impl LlmClient for AnthropicClient {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<LlmResponse>> + Send + '_>> {
         let request = request.clone();
         Box::pin(async move {
-            // Anthropic uses a top-level `system` field, not a system message
             let mut system = None;
             let mut messages = Vec::new();
 
@@ -90,22 +89,22 @@ impl LlmClient for AnthropicClient {
                 temperature: request.temperature,
             };
 
-            let resp = self
-                .client
-                .post(API_URL)
-                .header("x-api-key", &self.api_key)
-                .header("anthropic-version", API_VERSION)
-                .header("content-type", "application/json")
-                .json(&body)
-                .send()
-                .await
-                .context("failed to send request to Anthropic API")?;
+            let api_key = self.api_key.clone();
+            let client = &self.client;
 
-            let status = resp.status();
-            if !status.is_success() {
-                let text = resp.text().await.unwrap_or_default();
-                anyhow::bail!("Anthropic API returned {status}: {text}");
-            }
+            let resp = crate::retry::send_with_retry(
+                client,
+                || {
+                    client
+                        .post(API_URL)
+                        .header("x-api-key", &api_key)
+                        .header("anthropic-version", API_VERSION)
+                        .header("content-type", "application/json")
+                        .json(&body)
+                },
+                "Anthropic",
+            )
+            .await?;
 
             let api_resp: ApiResponse = resp
                 .json()
