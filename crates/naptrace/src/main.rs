@@ -163,9 +163,7 @@ async fn main() -> anyhow::Result<()> {
             finding_id,
             reasoner,
             model,
-        } => {
-            explain::run(&finding_id, &reasoner, model.as_deref()).await
-        }
+        } => explain::run(&finding_id, &reasoner, model.as_deref()).await,
         Commands::Bench => {
             println!("Running naptrace benchmark harness...\n");
             let status = std::process::Command::new("bash")

@@ -60,10 +60,19 @@ pub async fn retrieve(
         .context("empty embedding response for query")?;
 
     // Step 4: Embed functions in batches
-    let batch_size = 32;
+    let batch_size = 64;
     let mut all_embeddings: Vec<Vec<f32>> = Vec::with_capacity(functions.len());
+    let total_batches = functions.len().div_ceil(batch_size);
 
-    for chunk in functions.chunks(batch_size) {
+    for (batch_idx, chunk) in functions.chunks(batch_size).enumerate() {
+        info!(
+            batch = batch_idx + 1,
+            total = total_batches,
+            "embedding batch ({}/{})",
+            batch_idx + 1,
+            total_batches,
+        );
+
         let texts: Vec<String> = chunk.iter().map(|f| truncate_for_embed(&f.body)).collect();
 
         let embeddings = embedder
@@ -74,7 +83,7 @@ pub async fn retrieve(
         all_embeddings.extend(embeddings);
     }
 
-    info!(count = all_embeddings.len(), "embedded functions");
+    info!(count = all_embeddings.len(), "embedded all functions");
 
     // Step 5: Compute similarities and rank
     let mut scored: Vec<(usize, f32)> = all_embeddings

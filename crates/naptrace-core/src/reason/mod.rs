@@ -200,14 +200,61 @@ fn build_reason_input(sig: &VulnSignature, sliced: &SlicedCandidate, raw_diff: &
 fn parse_verdict(content: &str) -> Result<Verdict> {
     let json_str = crate::signature::extract_json_block(content);
 
-    let verdict: Verdict = serde_json::from_str(json_str)
-        .with_context(|| format!("failed to parse verdict JSON.\nRaw:\n{content}"))?;
-
-    if verdict.confidence > 10 {
-        anyhow::bail!("confidence > 10: {}", verdict.confidence);
+    // Try strict parsing first
+    if let Ok(verdict) = serde_json::from_str::<Verdict>(json_str) {
+        if verdict.confidence <= 10 {
+            return Ok(verdict);
+        }
     }
 
-    Ok(verdict)
+    // Fallback: try to extract fields from any JSON the LLM returned
+    if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
+        let verdict_kind = val
+            .get("verdict")
+            .and_then(|v| v.as_str())
+            .map(|s| match s {
+                "feasible" => VerdictKind::Feasible,
+                "infeasible" => VerdictKind::Infeasible,
+                _ => VerdictKind::NeedsRuntimeCheck,
+            })
+            .unwrap_or(VerdictKind::NeedsRuntimeCheck);
+
+        let justification = val
+            .get("justification")
+            .or_else(|| val.get("reason"))
+            .or_else(|| val.get("explanation"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("LLM returned non-standard response format")
+            .to_string();
+
+        let confidence = val
+            .get("confidence")
+            .and_then(|v| v.as_u64())
+            .map(|c| c.min(10) as u8)
+            .unwrap_or(3);
+
+        return Ok(Verdict {
+            verdict: verdict_kind,
+            justification,
+            blocking_sanitizers: vec![],
+            reachable_inputs: vec![],
+            poc_sketch: None,
+            confidence,
+        });
+    }
+
+    // Last resort: treat the raw text as a justification
+    Ok(Verdict {
+        verdict: VerdictKind::NeedsRuntimeCheck,
+        justification: format!(
+            "Could not parse LLM response as structured JSON: {}",
+            content.chars().take(200).collect::<String>()
+        ),
+        blocking_sanitizers: vec![],
+        reachable_inputs: vec![],
+        poc_sketch: None,
+        confidence: 1,
+    })
 }
 
 #[cfg(test)]
