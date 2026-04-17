@@ -6,6 +6,7 @@ pub mod rerank;
 pub mod retrieve;
 pub mod signature;
 pub mod slice;
+pub mod verify;
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

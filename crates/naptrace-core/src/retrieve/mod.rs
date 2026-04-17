@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod extract;
+pub mod normalize;
 
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};

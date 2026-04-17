@@ -13,6 +13,7 @@ pub struct HuntOptions {
     pub top_k: usize,
     pub languages: Vec<naptrace_core::Language>,
     pub output_format: String,
+    pub verify: bool,
 }
 
 use naptrace_core::reason::VerdictKind;
@@ -234,8 +235,13 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
     ));
     pb4.enable_steady_tick(std::time::Duration::from_millis(100));
 
-    let sliced =
-        naptrace_core::slice::slice_candidates(candidates, target_path, seed.language).await?;
+    let sliced = naptrace_core::slice::slice_candidates(
+        candidates,
+        target_path,
+        seed.language,
+        Some(&signature),
+    )
+    .await?;
 
     let slice_elapsed = start.elapsed();
     pb4.finish_and_clear();
@@ -282,6 +288,16 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     let reason_elapsed = start.elapsed();
     pb5.finish_and_clear();
+
+    // Optional: Verify feasible findings with AddressSanitizer
+    let mut findings = findings;
+    if opts.verify {
+        println!(
+            "\n  {} verifying feasible findings with AddressSanitizer...",
+            "[verify]".cyan(),
+        );
+        naptrace_core::verify::verify_findings(&mut findings, target_path, seed.language);
+    }
 
     let summary = naptrace_core::report::summarize(&findings);
 

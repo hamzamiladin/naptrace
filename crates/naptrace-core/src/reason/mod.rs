@@ -233,6 +233,13 @@ fn build_reason_input(sig: &VulnSignature, sliced: &SlicedCandidate, raw_diff: &
         candidate.body,
     );
 
+    // Add minimal code slice if available (targeted CPG extraction)
+    if let Some(ref slice) = sliced.code_slice {
+        input.push_str("\n## Minimal Code Slice (CPG-extracted)\n```\n");
+        input.push_str(slice);
+        input.push_str("\n```\n");
+    }
+
     // Add CPG path context if available
     if !sliced.cpg_paths.is_empty() {
         input.push_str("\n## CPG Path Slice\n");

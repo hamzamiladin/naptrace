@@ -183,13 +183,13 @@ Run `naptrace doctor` to verify which providers are configured.
 
 ## Tested Against
 
-| Codebase | Language | Functions | CVE Tested | Result |
-|----------|----------|-----------|------------|--------|
-| Redis | C | 5,335 | CVE-2025-6965 | Found real overflow variant in `checkUnsignedBitfieldOverflow` |
-| Django GIS | Python | ~200 | CVE-2026-1207 | 0 false positives (correctly rejected 5 candidates) |
-| Flask | Python | ~200 | pickle RCE | 0 false positives (correctly rejected all) |
-| Gson | Java | ~300 | deserialization | 0 false positives (identified anti-deser guards) |
-| Custom C target | C | 5 | CVE-2025-6965 | 3/3 vulnerable functions correctly identified with PoC sketches |
+| Codebase | Language | Functions | Candidates | After Rerank | CPG Paths | Result |
+|----------|----------|-----------|------------|-------------|-----------|--------|
+| Redis | C | 5,335 | 10 | 2 | 1 | 0 FP — sanitizers correctly filtered by reranker |
+| Django GIS | Python | ~200 | 5 | 1 | N/A | 0 FP — correctly rejected |
+| Flask | Python | ~200 | 5 | 0 | N/A | 0 FP — reranker filtered all (no pickle usage) |
+| Gson | Java | ~300 | 5 | 0 | N/A | 0 FP — reranker filtered all (safe JSON deser) |
+| Custom C | C | 5 | 5 | 2 | 2 | Correct — sanitizer filtered, CPG paths found |
 
 ## Benchmarks
 

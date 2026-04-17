@@ -86,6 +86,10 @@ enum Commands {
         /// Skip reasoning, only show what would be sent to the LLM
         #[arg(long)]
         explain_only: bool,
+
+        /// Verify feasible findings by compiling with AddressSanitizer
+        #[arg(long)]
+        verify: bool,
     },
 
     /// Replay the LLM call for a finding with full trace
@@ -139,6 +143,7 @@ async fn main() -> anyhow::Result<()> {
             top_k,
             languages,
             output,
+            verify,
             ..
         } => {
             if show_animation {
@@ -160,6 +165,7 @@ async fn main() -> anyhow::Result<()> {
                 top_k,
                 languages: langs,
                 output_format: output,
+                verify,
             })
             .await
         }

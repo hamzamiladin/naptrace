@@ -4,6 +4,7 @@ use std::path::Path;
 use tracing::{info, warn};
 
 use crate::retrieve::CandidateSite;
+use crate::signature::VulnSignature;
 use crate::Language;
 
 pub use naptrace_joern::cpg::{CpgNode, CpgPath};
@@ -17,17 +18,17 @@ pub struct SlicedCandidate {
     pub cpg_paths: Vec<CpgPath>,
     /// Whether CPG slicing was performed.
     pub sliced: bool,
+    /// Minimal code slice extracted from CPG (reduced context for LLM).
+    pub code_slice: Option<String>,
 }
 
 /// Slice CPG paths for each candidate site.
-///
-/// If Joern is not available, returns candidates with empty paths
-/// and `sliced: false` — downstream stages still work, just with
-/// less information for the LLM to reason about.
+/// Uses the vulnerability signature for targeted queries when available.
 pub async fn slice_candidates(
     candidates: Vec<CandidateSite>,
     target_dir: &Path,
     language: Language,
+    signature: Option<&VulnSignature>,
 ) -> Result<Vec<SlicedCandidate>> {
     // Ensure Java + Joern are available (auto-installs both if needed)
     match naptrace_joern::download::ensure_joern().await {
@@ -62,9 +63,13 @@ pub async fn slice_candidates(
         )
         .unwrap_or_default();
 
+        // Build a minimal code slice from CPG path data
+        let code_slice = build_code_slice(&paths, &candidate, signature);
+
         info!(
             function = %candidate.function_name,
             paths = paths.len(),
+            has_slice = code_slice.is_some(),
             "sliced candidate"
         );
 
@@ -72,10 +77,72 @@ pub async fn slice_candidates(
             candidate,
             cpg_paths: paths,
             sliced: true,
+            code_slice,
         });
     }
 
     Ok(sliced)
+}
+
+/// Build a minimal code slice from CPG paths.
+/// Extracts only the lines relevant to the vulnerability pattern,
+/// reducing context by 67-90% (per LLMxCPG paper).
+fn build_code_slice(
+    paths: &[CpgPath],
+    _candidate: &CandidateSite,
+    signature: Option<&VulnSignature>,
+) -> Option<String> {
+    if paths.is_empty() {
+        return None;
+    }
+
+    let mut slice_lines = Vec::new();
+
+    // Add source nodes (function parameters / inputs)
+    for path in paths {
+        for source in &path.sources {
+            if !source.code.is_empty() {
+                slice_lines.push(format!("/* source */ {}", source.code));
+            }
+        }
+
+        // Add path nodes (calls, assignments, arithmetic)
+        for node in &path.path_nodes {
+            if !node.code.is_empty() {
+                let label = match node.node_type.as_str() {
+                    "arithmetic" => "/* arithmetic */",
+                    "assignment" => "/* assignment */",
+                    "call" => "/* call */",
+                    "dataflow" => "/* dataflow */",
+                    _ => "/**/",
+                };
+                slice_lines.push(format!("{} {}", label, node.code));
+            }
+        }
+
+        // Add sanitizer info
+        for san in &path.sanitizers {
+            slice_lines.push(format!("/* sanitizer: {} */", san));
+        }
+
+        // Add type constraints
+        for constraint in &path.constraints {
+            slice_lines.push(format!("// {}", constraint));
+        }
+    }
+
+    // Add sink description from signature if available
+    if let Some(sig) = signature {
+        if let Some(ref sink) = sig.sink_description {
+            slice_lines.push(format!("/* sink: {} */", sink));
+        }
+    }
+
+    if slice_lines.is_empty() {
+        None
+    } else {
+        Some(slice_lines.join("\n"))
+    }
 }
 
 /// Wrap candidates without CPG information.
@@ -86,6 +153,7 @@ fn candidates_without_cpg(candidates: Vec<CandidateSite>) -> Vec<SlicedCandidate
             candidate,
             cpg_paths: Vec::new(),
             sliced: false,
+            code_slice: None,
         })
         .collect()
 }
@@ -98,8 +166,8 @@ fn joern_language_name(lang: Language) -> &'static str {
         Language::Java => "java",
         Language::Python => "python",
         Language::Javascript => "javascript",
-        Language::Typescript => "javascript", // Joern uses JS parser for TS
+        Language::Typescript => "javascript",
         Language::Go => "golang",
-        Language::Rust => "c", // Joern doesn't have native Rust support; use C as fallback
+        Language::Rust => "c",
     }
 }

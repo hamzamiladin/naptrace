@@ -172,9 +172,14 @@ async fn e2e_pipeline_with_mock_llm() {
     assert!(!candidates.is_empty(), "should find at least one candidate");
 
     // Stage 4: Slice (will skip since Joern may not be available in CI)
-    let sliced = slice::slice_candidates(candidates, target_dir.path(), naptrace_core::Language::C)
-        .await
-        .expect("slice should succeed even without Joern");
+    let sliced = slice::slice_candidates(
+        candidates,
+        target_dir.path(),
+        naptrace_core::Language::C,
+        None,
+    )
+    .await
+    .expect("slice should succeed even without Joern");
 
     assert!(!sliced.is_empty());
 
