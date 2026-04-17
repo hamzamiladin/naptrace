@@ -59,14 +59,8 @@ cargo install naptrace
 # From source
 cargo install --git https://github.com/hamzamiladin/naptrace
 ```
-```sh
-# Pre-built binary (Linux/macOS)
-curl -sSL https://raw.githubusercontent.com/hamzamiladin/naptrace/main/install.sh | sh
-```
-```sh
-# Docker
-docker run ghcr.io/hamzamiladin/naptrace hunt file:patch.diff /src
-```
+
+Requires Rust 1.85+. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
 ## What it finds
 

@@ -17,19 +17,10 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            cross: false
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            cross: true
           - target: x86_64-apple-darwin
             os: macos-13
-            cross: false
           - target: aarch64-apple-darwin
             os: macos-latest
-            cross: false
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            cross: false
     steps:
       - uses: actions/checkout@v4
 
@@ -41,28 +32,14 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      - name: Install cross
-        if: matrix.cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
       - name: Build
-        run: |
-          if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }}
-          else
-            cargo build --release --target ${{ matrix.target }}
-          fi
-        shell: bash
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package binary
         shell: bash
         run: |
-          BIN="naptrace"
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            BIN="naptrace.exe"
-          fi
           mkdir -p dist
-          cp "target/${{ matrix.target }}/release/$BIN" "dist/naptrace-${{ matrix.target }}${BIN##naptrace}"
+          cp "target/${{ matrix.target }}/release/naptrace" "dist/naptrace-${{ matrix.target }}"
           cp README.md LICENSE dist/
 
       - name: Upload artifact
