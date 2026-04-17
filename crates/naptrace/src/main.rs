@@ -125,12 +125,7 @@ async fn main() -> anyhow::Result<()> {
         std::io::stderr().is_terminal() || std::env::var("NAPTRACE_BANNER").is_ok();
 
     match cli.command {
-        Commands::Doctor => {
-            if show_animation {
-                banner::animate();
-            }
-            doctor::run().await
-        }
+        Commands::Doctor => doctor::run().await,
         Commands::Hunt {
             patch_source,
             target,
@@ -169,9 +164,6 @@ async fn main() -> anyhow::Result<()> {
             reasoner,
             model,
         } => {
-            if show_animation {
-                banner::animate();
-            }
             explain::run(&finding_id, &reasoner, model.as_deref()).await
         }
         Commands::Bench => {
