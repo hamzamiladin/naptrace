@@ -103,7 +103,11 @@ enum Commands {
     },
 
     /// Run the public benchmark against this build
-    Bench,
+    Bench {
+        /// Path to a custom ground truth YAML file
+        #[arg(long)]
+        corpus: Option<String>,
+    },
 
     /// Emit a starter .github/workflows/naptrace.yml
     InitAction,
@@ -164,19 +168,33 @@ async fn main() -> anyhow::Result<()> {
             reasoner,
             model,
         } => explain::run(&finding_id, &reasoner, model.as_deref()).await,
-        Commands::Bench => {
-            println!("Running naptrace benchmark harness...\n");
-            let status = std::process::Command::new("bash")
-                .arg("benchmarks/run.sh")
-                .status();
-            match status {
-                Ok(s) if s.success() => Ok(()),
-                Ok(s) => {
-                    std::process::exit(s.code().unwrap_or(2));
+        Commands::Bench { corpus } => {
+            if let Some(ref path) = corpus {
+                println!("Running benchmark with custom corpus: {path}\n");
+                let status = std::process::Command::new("bash")
+                    .arg("benchmarks/run.sh")
+                    .env("NAPTRACE_CORPUS", path)
+                    .status();
+                match status {
+                    Ok(s) if s.success() => Ok(()),
+                    Ok(s) => std::process::exit(s.code().unwrap_or(2)),
+                    Err(e) => {
+                        eprintln!("failed to run benchmarks/run.sh: {e}");
+                        std::process::exit(2);
+                    }
                 }
-                Err(e) => {
-                    eprintln!("failed to run benchmarks/run.sh: {e}");
-                    std::process::exit(2);
+            } else {
+                println!("Running naptrace benchmark harness...\n");
+                let status = std::process::Command::new("bash")
+                    .arg("benchmarks/run.sh")
+                    .status();
+                match status {
+                    Ok(s) if s.success() => Ok(()),
+                    Ok(s) => std::process::exit(s.code().unwrap_or(2)),
+                    Err(e) => {
+                        eprintln!("failed to run benchmarks/run.sh: {e}");
+                        std::process::exit(2);
+                    }
                 }
             }
         }

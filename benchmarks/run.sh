@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CORPUS_DIR="$SCRIPT_DIR/corpus"
 RESULTS_FILE="$SCRIPT_DIR/bench-results.json"
-GROUND_TRUTH="$SCRIPT_DIR/ground_truth.yaml"
+GROUND_TRUTH="${NAPTRACE_CORPUS:-$SCRIPT_DIR/ground_truth.yaml}"
 
 NAPTRACE="${NAPTRACE:-cargo run --release --}"
 
