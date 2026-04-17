@@ -108,6 +108,7 @@ async fn main() -> anyhow::Result<()> {
             model,
             top_k,
             languages,
+            output,
             ..
         } => {
             let langs: Vec<naptrace_core::Language> = languages
@@ -124,6 +125,7 @@ async fn main() -> anyhow::Result<()> {
                 model,
                 top_k,
                 languages: langs,
+                output_format: output,
             })
             .await
         }

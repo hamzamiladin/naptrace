@@ -34,3 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-download of Joern CLI (v4.0.523) on first use
 - Auto-install of Java 21 via Homebrew/apt/dnf when missing
 - Graceful degradation — skips CPG slicing if Joern/Java unavailable
+- Stage 5 (Reason): LLM feasibility verdict per candidate (feasible/infeasible/needs_runtime_check)
+- Stage 6 (Report): SARIF 2.1.0 output + pretty terminal display with color-coded verdicts
+- Exit codes per spec: 0 = no feasible findings, 1 = feasible found
+- Complete 6-stage pipeline working end-to-end
+- 43 tests total

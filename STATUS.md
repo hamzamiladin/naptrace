@@ -39,3 +39,12 @@
 - Graceful skip when Joern/Java unavailable.
 - Full 4-stage pipeline tested end-to-end.
 - Next: Stage 5 (Reason) — LLM feasibility verdict per candidate.
+
+## 2026-04-17 — Stages 5-6 (Reason + Report) complete
+
+- LLM feasibility reasoning with structured JSON verdicts.
+- SARIF 2.1.0 report generation (excludes infeasible findings).
+- Color-coded terminal output with verdicts, confidence, similarity.
+- Exit codes: 0 = clean, 1 = feasible findings.
+- **Full 6-stage pipeline operational.** Phase A milestone reached.
+- Next: benchmark corpus, polish, and launch preparation.

@@ -99,7 +99,7 @@ fn parse_signature_response(content: &str) -> Result<VulnSignature> {
 }
 
 /// Extract a JSON block from LLM output, handling ```json fences.
-fn extract_json_block(content: &str) -> &str {
+pub fn extract_json_block(content: &str) -> &str {
     let trimmed = content.trim();
 
     // Try to find ```json ... ``` block

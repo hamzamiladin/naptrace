@@ -11,7 +11,10 @@ pub struct HuntOptions {
     pub model: Option<String>,
     pub top_k: usize,
     pub languages: Vec<naptrace_core::Language>,
+    pub output_format: String,
 }
+
+use naptrace_core::reason::VerdictKind;
 
 pub async fn run(opts: HuntOptions) -> Result<()> {
     let start = Instant::now();
@@ -230,16 +233,108 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     println!("{}", "─".repeat(60).dimmed());
 
-    // Stages 5-6 not yet implemented
+    // Stage 5: Reason — LLM feasibility verdict
+    let pb5 = ProgressBar::new_spinner();
+    pb5.set_style(ProgressStyle::with_template("  [5/6] {msg:.cyan}").unwrap());
+    pb5.set_message(format!("reasoning over {} candidates...", sliced.len()));
+    pb5.enable_steady_tick(std::time::Duration::from_millis(100));
+
+    let findings = naptrace_core::reason::reason(
+        &sliced,
+        &signature,
+        llm.as_ref(),
+        model_override,
+        &seed.raw_diff,
+    )
+    .await?;
+
+    let reason_elapsed = start.elapsed();
+    pb5.finish_and_clear();
+
+    let summary = naptrace_core::report::summarize(&findings);
+
     println!(
-        "\n  {} stages 5-6 (reason, report) not yet implemented.",
-        "[todo]".yellow(),
+        "\n  {} {} findings ({:.1}s)",
+        "[reason]".green(),
+        summary.total,
+        reason_elapsed.as_secs_f64(),
+    );
+    println!("{}", "─".repeat(60).dimmed());
+
+    // Stage 6: Report
+    for f in &findings {
+        let (icon, color_verdict) = match f.verdict.verdict {
+            VerdictKind::Feasible => (">>".red().bold(), "FEASIBLE".red().bold()),
+            VerdictKind::NeedsRuntimeCheck => ("??".yellow().bold(), "NEEDS_CHECK".yellow().bold()),
+            VerdictKind::Infeasible => ("--".dimmed(), "INFEASIBLE".dimmed()),
+        };
+
+        println!(
+            "\n  {} {}  {}:{}-{}  [{}]",
+            icon,
+            color_verdict,
+            f.file_path,
+            f.start_line,
+            f.end_line,
+            f.function_name,
+        );
+
+        for line in textwrap(&f.verdict.justification, 64) {
+            println!("     {line}");
+        }
+
+        if !f.verdict.blocking_sanitizers.is_empty() {
+            println!("     {}", "blockers:".dimmed());
+            for s in &f.verdict.blocking_sanitizers {
+                println!("       - {s}");
+            }
+        }
+
+        if let Some(ref poc) = f.verdict.poc_sketch {
+            println!("     {}", "poc sketch:".dimmed());
+            for line in textwrap(poc, 64) {
+                println!("       {line}");
+            }
+        }
+
+        println!(
+            "     {} {}/10    {} {}%",
+            "confidence:".dimmed(),
+            f.verdict.confidence,
+            "similarity:".dimmed(),
+            (f.similarity * 100.0) as u32,
+        );
+    }
+
+    println!("\n{}", "─".repeat(60).dimmed());
+    println!(
+        "\n  {} {} feasible, {} needs_check, {} infeasible",
+        "summary:".bold(),
+        summary.feasible.to_string().red().bold(),
+        summary.needs_check.to_string().yellow(),
+        summary.infeasible.to_string().dimmed(),
     );
     println!(
-        "  total elapsed: {:.1}s",
+        "  total elapsed: {:.1}s\n",
         start.elapsed().as_secs_f64(),
     );
-    println!();
+
+    // SARIF output
+    if opts.output_format == "sarif"
+        || (opts.output_format == "auto" && !atty::is(atty::Stream::Stdout))
+    {
+        let sarif = naptrace_core::report::generate_sarif(
+            &findings,
+            seed.cve_id.as_deref(),
+        );
+        let json = serde_json::to_string_pretty(&sarif)?;
+        println!("{json}");
+    }
+
+    // Exit code per spec: 0 = no feasible, 1 = feasible found, 2 = error
+    if summary.feasible > 0 {
+        std::process::exit(1);
+    }
 
     Ok(())
 }
