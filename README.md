@@ -163,10 +163,11 @@ Or add manually:
 | Provider | Flag | Model | Requires |
 |----------|------|-------|----------|
 | Ollama (local) | `--reasoner ollama` | qwen2.5-coder:32b | Nothing (auto-downloads) |
+| Groq (free) | `--reasoner groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` (free tier) |
 | Anthropic | `--reasoner anthropic` | claude-opus-4-7 | `ANTHROPIC_API_KEY` |
 | OpenAI | `--reasoner openai` | gpt-4o | `OPENAI_API_KEY` |
 
-Local mode via Ollama is a first-class citizen. No signup, no API keys, no cloud.
+Local mode via Ollama and free cloud via Groq both work with zero cost. No credit card required.
 
 ## Benchmarks
 

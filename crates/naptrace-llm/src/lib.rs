@@ -1,4 +1,5 @@
 pub mod anthropic;
+pub mod groq;
 pub mod ollama;
 pub mod openai;
 
@@ -54,6 +55,7 @@ pub enum Provider {
     Anthropic,
     OpenAi,
     Ollama,
+    Groq,
 }
 
 impl std::str::FromStr for Provider {
@@ -64,7 +66,8 @@ impl std::str::FromStr for Provider {
             "anthropic" | "claude" => Ok(Self::Anthropic),
             "openai" | "gpt" => Ok(Self::OpenAi),
             "ollama" | "local" => Ok(Self::Ollama),
-            _ => bail!("unknown LLM provider: {s} (expected: anthropic, openai, ollama)"),
+            "groq" => Ok(Self::Groq),
+            _ => bail!("unknown LLM provider: {s} (expected: anthropic, openai, ollama, groq)"),
         }
     }
 }
@@ -75,6 +78,7 @@ impl Provider {
             Self::Anthropic => "claude-opus-4-7",
             Self::OpenAi => "gpt-4o",
             Self::Ollama => "qwen2.5-coder:32b",
+            Self::Groq => "llama-3.3-70b-versatile",
         }
     }
 }
@@ -92,6 +96,10 @@ pub async fn create_client(provider: Provider) -> Result<Box<dyn LlmClient>> {
         }
         Provider::Ollama => {
             let client = ollama::OllamaClient::from_env();
+            Ok(Box::new(client))
+        }
+        Provider::Groq => {
+            let client = groq::GroqClient::from_env()?;
             Ok(Box::new(client))
         }
     }

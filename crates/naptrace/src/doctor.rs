@@ -27,6 +27,7 @@ pub async fn run() -> Result<()> {
         check_cache_dir(),
         check_anthropic_key(),
         check_openai_key(),
+        check_groq_key(),
         check_voyage_key(),
         check_ollama(),
         check_git(),
@@ -163,6 +164,21 @@ fn check_openai_key() -> Check {
             name: "openai api",
             status: Status::Warning,
             detail: "OPENAI_API_KEY not set (optional, needed for --reasoner openai)".into(),
+        },
+    }
+}
+
+fn check_groq_key() -> Check {
+    match std::env::var("GROQ_API_KEY") {
+        Ok(key) if !key.is_empty() => Check {
+            name: "groq api",
+            status: Status::Ok,
+            detail: format!("GROQ_API_KEY set ({}...)", &key[..8.min(key.len())]),
+        },
+        _ => Check {
+            name: "groq api",
+            status: Status::Warning,
+            detail: "GROQ_API_KEY not set (optional, needed for --reasoner groq)".into(),
         },
     }
 }
