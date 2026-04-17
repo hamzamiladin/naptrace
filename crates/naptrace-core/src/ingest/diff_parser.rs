@@ -117,10 +117,7 @@ fn parse_diff_header_path(line: &str) -> String {
 /// Parse `@@ -old_start,old_lines +new_start,new_lines @@` into a HunkBuilder.
 fn parse_hunk_header(line: &str) -> Option<HunkBuilder> {
     // Strip the @@ markers
-    let inner = line
-        .strip_prefix("@@ ")?
-        .split(" @@")
-        .next()?;
+    let inner = line.strip_prefix("@@ ")?.split(" @@").next()?;
 
     let parts: Vec<&str> = inner.split_whitespace().collect();
     if parts.len() < 2 {

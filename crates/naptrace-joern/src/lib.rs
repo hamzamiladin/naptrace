@@ -1,9 +1,9 @@
-pub mod download;
 pub mod cpg;
+pub mod download;
 
-use std::path::PathBuf;
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
+use std::path::PathBuf;
 
 pub const JOERN_VERSION: &str = "4.0.523";
 
@@ -25,9 +25,7 @@ pub fn joern_parse_bin_path() -> Result<PathBuf> {
 }
 
 pub fn is_joern_installed() -> bool {
-    joern_bin_path()
-        .map(|p| p.exists())
-        .unwrap_or(false)
+    joern_bin_path().map(|p| p.exists()).unwrap_or(false)
 }
 
 pub fn cpg_cache_dir() -> Result<PathBuf> {

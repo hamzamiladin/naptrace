@@ -33,17 +33,16 @@ pub async fn run(finding_id: &str, reasoner: &str, model: Option<&str>) -> Resul
     let prompt_template = naptrace_core::prompt::load_prompt("explain_finding")
         .context("failed to load explain_finding prompt")?;
 
-    let provider = naptrace_llm::Provider::from_str(reasoner)?;
+    let provider = reasoner.parse::<naptrace_llm::Provider>()?;
     let llm = naptrace_llm::create_client(provider).await?;
 
-    let llm_model = model
-        .unwrap_or_else(|| {
-            if provider != naptrace_llm::Provider::Anthropic {
-                provider.default_model()
-            } else {
-                &prompt_template.meta.model
-            }
-        });
+    let llm_model = model.unwrap_or_else(|| {
+        if provider != naptrace_llm::Provider::Anthropic {
+            provider.default_model()
+        } else {
+            &prompt_template.meta.model
+        }
+    });
 
     println!(
         "\n  {} sending to {} ({})...\n",
@@ -76,7 +75,12 @@ pub async fn run(finding_id: &str, reasoner: &str, model: Option<&str>) -> Resul
 
     // Show what we're sending
     println!("  {}", "prompt (system):".dimmed());
-    let system_preview: String = prompt_template.body.lines().take(3).collect::<Vec<_>>().join("\n");
+    let system_preview: String = prompt_template
+        .body
+        .lines()
+        .take(3)
+        .collect::<Vec<_>>()
+        .join("\n");
     println!("    {}...", system_preview);
     println!();
 

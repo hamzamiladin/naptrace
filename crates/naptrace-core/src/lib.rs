@@ -1,10 +1,10 @@
 pub mod ingest;
 pub mod prompt;
-pub mod signature;
-pub mod retrieve;
-pub mod slice;
 pub mod reason;
 pub mod report;
+pub mod retrieve;
+pub mod signature;
+pub mod slice;
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

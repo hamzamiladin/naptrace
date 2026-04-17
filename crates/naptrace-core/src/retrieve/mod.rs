@@ -117,9 +117,7 @@ pub async fn retrieve(
 fn build_query_text(sig: &VulnSignature) -> String {
     format!(
         "{}\n{}\n{}",
-        sig.nl_brief,
-        sig.root_cause,
-        sig.vulnerable_pattern,
+        sig.nl_brief, sig.root_cause, sig.vulnerable_pattern,
     )
 }
 

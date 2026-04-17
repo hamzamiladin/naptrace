@@ -1,8 +1,8 @@
 use naptrace_core::ingest;
-use naptrace_core::signature;
-use naptrace_core::retrieve;
 use naptrace_core::reason::{self, VerdictKind};
 use naptrace_core::report;
+use naptrace_core::retrieve;
+use naptrace_core::signature;
 use naptrace_core::slice;
 use naptrace_llm::{LlmClient, LlmRequest, LlmResponse, Provider, Usage};
 
@@ -43,7 +43,11 @@ impl LlmClient for MockLlmClient {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<LlmResponse>> + Send + '_>>
     {
         // Determine which response to return based on the system prompt
-        let content = if request.messages.iter().any(|m| m.content.contains("Distillation")) {
+        let content = if request
+            .messages
+            .iter()
+            .any(|m| m.content.contains("Distillation"))
+        {
             self.distill_response.clone()
         } else {
             self.reason_response.clone()
@@ -70,11 +74,7 @@ impl LlmClient for MockLlmClient {
 struct MockEmbedder;
 
 impl naptrace_embed::Embedder for MockEmbedder {
-    fn embed(
-        &self,
-        texts: &[String],
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<Vec<Vec<f32>>>> + Send + '_>>
-    {
+    fn embed(&self, texts: &[String]) -> naptrace_embed::EmbedFuture<'_> {
         let count = texts.len();
         Box::pin(async move {
             // Return random-ish but deterministic embeddings
@@ -138,7 +138,10 @@ async fn e2e_pipeline_with_mock_llm() {
 
     // Stage 1: Ingest
     let seed = ingest::ingest(
-        &format!("file:{}/tests/fixtures/sqlite_cve_2025_6965.patch", env!("CARGO_MANIFEST_DIR")),
+        &format!(
+            "file:{}/tests/fixtures/sqlite_cve_2025_6965.patch",
+            env!("CARGO_MANIFEST_DIR")
+        ),
         &target_dir.path().to_string_lossy(),
     )
     .await
@@ -169,31 +172,23 @@ async fn e2e_pipeline_with_mock_llm() {
     assert!(!candidates.is_empty(), "should find at least one candidate");
 
     // Stage 4: Slice (will skip since Joern may not be available in CI)
-    let sliced = slice::slice_candidates(
-        candidates,
-        target_dir.path(),
-        naptrace_core::Language::C,
-    )
-    .await
-    .expect("slice should succeed even without Joern");
+    let sliced = slice::slice_candidates(candidates, target_dir.path(), naptrace_core::Language::C)
+        .await
+        .expect("slice should succeed even without Joern");
 
     assert!(!sliced.is_empty());
 
     // Stage 5: Reason
-    let findings = reason::reason(
-        &sliced,
-        &signature,
-        &mock_llm,
-        Some("mock-model"),
-        &diff,
-    )
-    .await
-    .expect("reason should succeed");
+    let findings = reason::reason(&sliced, &signature, &mock_llm, Some("mock-model"), &diff)
+        .await
+        .expect("reason should succeed");
 
     assert!(!findings.is_empty());
     // Mock always returns "feasible"
     assert!(
-        findings.iter().all(|f| f.verdict.verdict == VerdictKind::Feasible),
+        findings
+            .iter()
+            .all(|f| f.verdict.verdict == VerdictKind::Feasible),
         "mock LLM should return feasible for all candidates"
     );
 

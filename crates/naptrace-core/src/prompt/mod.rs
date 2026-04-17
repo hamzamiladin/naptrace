@@ -41,8 +41,8 @@ impl PromptTemplate {
             .context("prompt template must have closing --- after frontmatter")?;
 
         // Parse the frontmatter — it's wrapped in a `meta:` key
-        let wrapper: FrontmatterWrapper = serde_yaml::from_str(yaml_str.trim())
-            .context("failed to parse prompt frontmatter")?;
+        let wrapper: FrontmatterWrapper =
+            serde_yaml::from_str(yaml_str.trim()).context("failed to parse prompt frontmatter")?;
 
         Ok(Self {
             meta: wrapper.meta,

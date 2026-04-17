@@ -49,8 +49,8 @@ impl OllamaClient {
     }
 
     pub fn from_env() -> Self {
-        let base_url = std::env::var("OLLAMA_HOST")
-            .unwrap_or_else(|_| "http://localhost:11434".into());
+        let base_url =
+            std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost:11434".into());
         Self::new(base_url)
     }
 }

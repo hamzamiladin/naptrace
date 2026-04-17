@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Context;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -36,20 +36,15 @@ impl OllamaEmbedder {
     }
 
     pub fn from_env() -> Self {
-        let base_url = std::env::var("OLLAMA_HOST")
-            .unwrap_or_else(|_| "http://localhost:11434".into());
-        let model = std::env::var("NAPTRACE_EMBED_MODEL")
-            .unwrap_or_else(|_| DEFAULT_MODEL.into());
+        let base_url =
+            std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost:11434".into());
+        let model = std::env::var("NAPTRACE_EMBED_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.into());
         Self::new(base_url, model)
     }
 }
 
 impl Embedder for OllamaEmbedder {
-    fn embed(
-        &self,
-        texts: &[String],
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<Vec<f32>>>> + Send + '_>>
-    {
+    fn embed(&self, texts: &[String]) -> crate::EmbedFuture<'_> {
         let texts = texts.to_vec();
         Box::pin(async move {
             if texts.is_empty() {

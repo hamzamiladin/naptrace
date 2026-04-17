@@ -81,10 +81,7 @@ pub struct SarifProperties {
 }
 
 /// Generate a SARIF 2.1.0 report from judged candidates.
-pub fn generate_sarif(
-    findings: &[JudgedCandidate],
-    cve_id: Option<&str>,
-) -> SarifReport {
+pub fn generate_sarif(findings: &[JudgedCandidate], cve_id: Option<&str>) -> SarifReport {
     let results: Vec<SarifResult> = findings
         .iter()
         .filter(|f| f.verdict.verdict != VerdictKind::Infeasible)

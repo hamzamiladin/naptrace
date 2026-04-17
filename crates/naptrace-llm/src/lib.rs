@@ -1,6 +1,6 @@
 pub mod anthropic;
-pub mod openai;
 pub mod ollama;
+pub mod openai;
 
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
@@ -21,11 +21,17 @@ pub struct Message {
 
 impl Message {
     pub fn system(content: impl Into<String>) -> Self {
-        Self { role: "system".into(), content: content.into() }
+        Self {
+            role: "system".into(),
+            content: content.into(),
+        }
     }
 
     pub fn user(content: impl Into<String>) -> Self {
-        Self { role: "user".into(), content: content.into() }
+        Self {
+            role: "user".into(),
+            content: content.into(),
+        }
     }
 }
 
@@ -50,8 +56,10 @@ pub enum Provider {
     Ollama,
 }
 
-impl Provider {
-    pub fn from_str(s: &str) -> Result<Self> {
+impl std::str::FromStr for Provider {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
         match s.to_lowercase().as_str() {
             "anthropic" | "claude" => Ok(Self::Anthropic),
             "openai" | "gpt" => Ok(Self::OpenAi),
@@ -59,7 +67,9 @@ impl Provider {
             _ => bail!("unknown LLM provider: {s} (expected: anthropic, openai, ollama)"),
         }
     }
+}
 
+impl Provider {
     pub fn default_model(&self) -> &'static str {
         match self {
             Self::Anthropic => "claude-opus-4-7",

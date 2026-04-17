@@ -57,8 +57,7 @@ impl OpenAiClient {
     }
 
     pub fn from_env() -> Result<Self> {
-        let key = std::env::var("OPENAI_API_KEY")
-            .context("OPENAI_API_KEY not set")?;
+        let key = std::env::var("OPENAI_API_KEY").context("OPENAI_API_KEY not set")?;
         Ok(Self::new(key))
     }
 }

@@ -150,7 +150,11 @@ pub async fn ensure_joern() -> Result<PathBuf> {
     let marker = cache.join(".naptrace-joern-installed");
 
     if marker.exists() && install_dir.exists() {
-        info!("Joern {} already installed at {}", JOERN_VERSION, install_dir.display());
+        info!(
+            "Joern {} already installed at {}",
+            JOERN_VERSION,
+            install_dir.display()
+        );
         return Ok(install_dir);
     }
 
@@ -205,10 +209,13 @@ pub async fn ensure_joern() -> Result<PathBuf> {
     let _ = std::fs::remove_file(&zip_path);
 
     // Write marker
-    std::fs::write(&marker, JOERN_VERSION)
-        .context("failed to write install marker")?;
+    std::fs::write(&marker, JOERN_VERSION).context("failed to write install marker")?;
 
-    info!("Joern {} installed to {}", JOERN_VERSION, install_dir.display());
+    info!(
+        "Joern {} installed to {}",
+        JOERN_VERSION,
+        install_dir.display()
+    );
     Ok(install_dir)
 }
 

@@ -134,8 +134,8 @@ fn node_to_function(
         return None;
     }
 
-    let name = extract_function_name(node, source, lang)
-        .unwrap_or_else(|| "<anonymous>".to_string());
+    let name =
+        extract_function_name(node, source, lang).unwrap_or_else(|| "<anonymous>".to_string());
 
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
@@ -151,11 +151,7 @@ fn node_to_function(
 }
 
 /// Extract the function name from a tree-sitter node.
-fn extract_function_name(
-    node: tree_sitter::Node,
-    source: &str,
-    lang: Language,
-) -> Option<String> {
+fn extract_function_name(node: tree_sitter::Node, source: &str, lang: Language) -> Option<String> {
     let name_field = match lang {
         Language::C | Language::Cpp => "declarator",
         Language::Python => "name",
@@ -169,7 +165,10 @@ fn extract_function_name(
 
     // For C/C++, the declarator may be nested (e.g., pointer_declarator -> function_declarator)
     let name_node = find_identifier(child);
-    name_node.utf8_text(source.as_bytes()).ok().map(|s| s.to_string())
+    name_node
+        .utf8_text(source.as_bytes())
+        .ok()
+        .map(|s| s.to_string())
 }
 
 /// Find the deepest identifier node in a declarator chain.
@@ -283,7 +282,11 @@ int main() {
 
         // Then test directory walk
         let functions = extract_functions(dir.path(), &[Language::C]).unwrap();
-        assert!(functions.len() >= 2, "directory walk should find at least 2 functions, got {}", functions.len());
+        assert!(
+            functions.len() >= 2,
+            "directory walk should find at least 2 functions, got {}",
+            functions.len()
+        );
     }
 
     #[test]

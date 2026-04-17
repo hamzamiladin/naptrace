@@ -9,7 +9,10 @@ pub enum PatchSource {
     /// A CVE identifier: `cve:CVE-2025-6965`
     Cve(String),
     /// A git repo + commit SHA: `https://github.com/user/repo@abc123`
-    GitCommit { repo_url: String, commit_sha: String },
+    GitCommit {
+        repo_url: String,
+        commit_sha: String,
+    },
     /// A pull request URL: `pr:https://github.com/user/repo/pull/123`
     PullRequest(String),
 }
@@ -44,10 +47,8 @@ impl PatchSource {
         }
 
         // If it looks like a file path (contains . or /), treat as file
-        if input.contains('.') || input.contains('/') {
-            if std::path::Path::new(input).exists() {
-                return Ok(Self::File(input.to_string()));
-            }
+        if (input.contains('.') || input.contains('/')) && std::path::Path::new(input).exists() {
+            return Ok(Self::File(input.to_string()));
         }
 
         bail!(
@@ -96,15 +97,10 @@ impl PatchSource {
 
 /// Fetch a commit's diff from GitHub's API.
 /// Accepts URLs like `https://github.com/user/repo` or `user/repo`.
-async fn fetch_git_commit_diff(
-    repo_url: &str,
-    commit_sha: &str,
-) -> Result<(String, String)> {
+async fn fetch_git_commit_diff(repo_url: &str, commit_sha: &str) -> Result<(String, String)> {
     let (owner, repo) = parse_github_repo(repo_url)?;
 
-    let api_url = format!(
-        "https://api.github.com/repos/{owner}/{repo}/commits/{commit_sha}"
-    );
+    let api_url = format!("https://api.github.com/repos/{owner}/{repo}/commits/{commit_sha}");
     debug!(api_url, "fetching commit from GitHub API");
 
     let client = reqwest::Client::new();
@@ -126,7 +122,7 @@ async fn fetch_git_commit_diff(
 
     // Fetch commit message separately (the diff endpoint doesn't include it)
     let msg_resp = client
-        .get(&format!(
+        .get(format!(
             "https://api.github.com/repos/{owner}/{repo}/commits/{commit_sha}"
         ))
         .header("Accept", "application/vnd.github.v3+json")
@@ -137,10 +133,7 @@ async fn fetch_git_commit_diff(
 
     let commit_msg = if msg_resp.status().is_success() {
         let json: serde_json::Value = msg_resp.json().await.unwrap_or_default();
-        json["commit"]["message"]
-            .as_str()
-            .unwrap_or("")
-            .to_string()
+        json["commit"]["message"].as_str().unwrap_or("").to_string()
     } else {
         String::new()
     };
@@ -150,8 +143,7 @@ async fn fetch_git_commit_diff(
 
 /// Get the NVD cache directory.
 fn nvd_cache_dir() -> Option<std::path::PathBuf> {
-    directories::ProjectDirs::from("dev", "naptrace", "naptrace")
-        .map(|d| d.cache_dir().join("nvd"))
+    directories::ProjectDirs::from("dev", "naptrace", "naptrace").map(|d| d.cache_dir().join("nvd"))
 }
 
 /// Check the NVD cache for a previously fetched CVE response.
@@ -179,9 +171,7 @@ async fn fetch_cve_patch(cve_id: &str) -> Result<String> {
         debug!(cve_id, "using cached NVD response");
         cached
     } else {
-        let api_url = format!(
-            "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
-        );
+        let api_url = format!("https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}");
         debug!(api_url, "fetching CVE from NVD");
 
         let client = reqwest::Client::new();
@@ -203,16 +193,21 @@ async fn fetch_cve_patch(cve_id: &str) -> Result<String> {
                 .await
                 .context("failed to retry NVD fetch")?;
             if !resp.status().is_success() {
-                bail!("NVD API returned {} for {cve_id} (after retry)", resp.status());
+                bail!(
+                    "NVD API returned {} for {cve_id} (after retry)",
+                    resp.status()
+                );
             }
-            let json: serde_json::Value = resp.json().await.context("failed to parse NVD response")?;
+            let json: serde_json::Value =
+                resp.json().await.context("failed to parse NVD response")?;
             nvd_cache_put(cve_id, &json);
             json
         } else if !resp.status().is_success() {
             let status = resp.status();
             bail!("NVD API returned {status} for {cve_id}");
         } else {
-            let json: serde_json::Value = resp.json().await.context("failed to parse NVD response")?;
+            let json: serde_json::Value =
+                resp.json().await.context("failed to parse NVD response")?;
             nvd_cache_put(cve_id, &json);
             json
         }
@@ -246,9 +241,7 @@ async fn fetch_cve_patch(cve_id: &str) -> Result<String> {
 async fn try_github_commit_url(url: &str) -> Result<Option<String>> {
     // Match github.com/<owner>/<repo>/commit/<sha>
     let parts: Vec<&str> = url.split('/').collect();
-    let is_github_commit = parts.len() >= 7
-        && parts[2] == "github.com"
-        && parts[5] == "commit";
+    let is_github_commit = parts.len() >= 7 && parts[2] == "github.com" && parts[5] == "commit";
 
     if !is_github_commit {
         return Ok(None);
@@ -293,9 +286,7 @@ async fn fetch_pr_diff(url: &str) -> Result<String> {
     let repo = parts[4];
     let number = parts[6];
 
-    let api_url = format!(
-        "https://api.github.com/repos/{owner}/{repo}/pulls/{number}"
-    );
+    let api_url = format!("https://api.github.com/repos/{owner}/{repo}/pulls/{number}");
 
     let client = reqwest::Client::new();
     let resp = client
@@ -364,8 +355,7 @@ mod tests {
 
     #[test]
     fn parse_git_commit() {
-        let source =
-            PatchSource::parse("https://github.com/user/repo@abc1234").unwrap();
+        let source = PatchSource::parse("https://github.com/user/repo@abc1234").unwrap();
         assert!(matches!(
             source,
             PatchSource::GitCommit { repo_url, commit_sha }
@@ -375,15 +365,13 @@ mod tests {
 
     #[test]
     fn parse_pr_source() {
-        let source =
-            PatchSource::parse("pr:https://github.com/user/repo/pull/42").unwrap();
+        let source = PatchSource::parse("pr:https://github.com/user/repo/pull/42").unwrap();
         assert!(matches!(source, PatchSource::PullRequest(url) if url.contains("42")));
     }
 
     #[test]
     fn parse_github_repo_full_url() {
-        let (owner, repo) =
-            parse_github_repo("https://github.com/sqlite/sqlite").unwrap();
+        let (owner, repo) = parse_github_repo("https://github.com/sqlite/sqlite").unwrap();
         assert_eq!(owner, "sqlite");
         assert_eq!(repo, "sqlite");
     }

@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Context;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -45,11 +45,7 @@ impl VoyageEmbedder {
 }
 
 impl Embedder for VoyageEmbedder {
-    fn embed(
-        &self,
-        texts: &[String],
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<Vec<f32>>>> + Send + '_>>
-    {
+    fn embed(&self, texts: &[String]) -> crate::EmbedFuture<'_> {
         let texts = texts.to_vec();
         Box::pin(async move {
             if texts.is_empty() {

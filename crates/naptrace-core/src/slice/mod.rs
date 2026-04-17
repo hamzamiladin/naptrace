@@ -1,12 +1,12 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
 use std::path::Path;
+use tracing::{info, warn};
 
 use crate::retrieve::CandidateSite;
 use crate::Language;
 
-pub use naptrace_joern::cpg::{CpgPath, CpgNode};
+pub use naptrace_joern::cpg::{CpgNode, CpgPath};
 
 /// A candidate enriched with CPG path information.
 #[derive(Debug, Clone, Serialize, Deserialize)]

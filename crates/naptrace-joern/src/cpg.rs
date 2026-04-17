@@ -98,10 +98,9 @@ pub fn query_paths(
     // 4. Outputs JSON
     let script = build_query_script(function_name, file_path, start_line);
 
-    let temp_script = tempfile::NamedTempFile::new()
-        .context("failed to create temp script file")?;
-    std::fs::write(temp_script.path(), &script)
-        .context("failed to write Joern query script")?;
+    let temp_script =
+        tempfile::NamedTempFile::new().context("failed to create temp script file")?;
+    std::fs::write(temp_script.path(), &script).context("failed to write Joern query script")?;
 
     debug!(
         function = function_name,
@@ -203,8 +202,7 @@ fn parse_query_output(output: &str) -> Result<Vec<CpgPath>> {
     match (json_start, json_end) {
         (Some(start), Some(end)) if end > start => {
             let json = &output[start..=end];
-            let paths: Vec<CpgPath> =
-                serde_json::from_str(json).unwrap_or_default();
+            let paths: Vec<CpgPath> = serde_json::from_str(json).unwrap_or_default();
             Ok(paths)
         }
         _ => {
@@ -216,9 +214,7 @@ fn parse_query_output(output: &str) -> Result<Vec<CpgPath>> {
 
 fn hash_path(path: &Path) -> String {
     use sha2::{Digest, Sha256};
-    let canonical = path
-        .canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf());
+    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let mut hasher = Sha256::new();
     hasher.update(canonical.to_string_lossy().as_bytes());
     let result = hasher.finalize();

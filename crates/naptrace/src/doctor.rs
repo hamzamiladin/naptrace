@@ -16,11 +16,11 @@ enum Status {
 }
 
 pub async fn run() -> Result<()> {
+    println!("\n{}", "naptrace doctor".bold());
     println!(
-        "\n{}",
-        "naptrace doctor".bold()
+        "{}\n",
+        "checking dependencies and configuration...".dimmed()
     );
-    println!("{}\n", "checking dependencies and configuration...".dimmed());
 
     let checks = vec![
         check_joern(),
@@ -51,13 +51,9 @@ pub async fn run() -> Result<()> {
     if has_missing {
         println!(
             "{}",
-            "some dependencies are missing — naptrace may not work fully."
-                .yellow()
+            "some dependencies are missing — naptrace may not work fully.".yellow()
         );
-        println!(
-            "{}",
-            "run with RUST_LOG=debug for more details.\n".dimmed()
-        );
+        println!("{}", "run with RUST_LOG=debug for more details.\n".dimmed());
     } else {
         println!("{}", "all checks passed.\n".green());
     }
@@ -188,8 +184,7 @@ fn check_voyage_key() -> Check {
 }
 
 fn check_ollama() -> Check {
-    let host = std::env::var("OLLAMA_HOST")
-        .unwrap_or_else(|_| "http://localhost:11434".into());
+    let host = std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost:11434".into());
 
     // Just check if the env is set or default is reachable — don't block on network
     if std::env::var("OLLAMA_HOST").is_ok() {
@@ -237,6 +232,5 @@ fn which(binary: &str) -> Option<String> {
 }
 
 fn cache_dir() -> Option<PathBuf> {
-    ProjectDirs::from("dev", "naptrace", "naptrace")
-        .map(|d| d.cache_dir().to_path_buf())
+    ProjectDirs::from("dev", "naptrace", "naptrace").map(|d| d.cache_dir().to_path_buf())
 }

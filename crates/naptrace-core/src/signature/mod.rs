@@ -23,18 +23,15 @@ pub async fn distill(
     llm: &dyn naptrace_llm::LlmClient,
     model_override: Option<&str>,
 ) -> Result<VulnSignature> {
-    let prompt_template = load_prompt("distill_signature")
-        .context("failed to load distill_signature prompt")?;
+    let prompt_template =
+        load_prompt("distill_signature").context("failed to load distill_signature prompt")?;
 
     // Build the context for the prompt
     let diff_text = build_diff_context(seed);
     let pre_patch = build_pre_patch_context(seed);
     let post_patch = build_post_patch_context(seed);
     let commit_msg = seed.commit_msg.as_deref().unwrap_or("(no commit message)");
-    let cve_info = seed
-        .cve_id
-        .as_deref()
-        .unwrap_or("(no CVE ID provided)");
+    let cve_info = seed.cve_id.as_deref().unwrap_or("(no CVE ID provided)");
 
     let user_content = format!(
         "## Pre-patch source\n\
@@ -67,7 +64,9 @@ pub async fn distill(
         max_tokens: prompt_template.meta.max_tokens,
     };
 
-    let response = llm.complete(&request).await
+    let response = llm
+        .complete(&request)
+        .await
         .context("LLM call failed during signature distillation")?;
 
     info!(
@@ -83,13 +82,12 @@ fn parse_signature_response(content: &str) -> Result<VulnSignature> {
     // The LLM may wrap JSON in ```json ... ``` — strip it
     let json_str = extract_json_block(content);
 
-    let sig: VulnSignature = serde_json::from_str(json_str)
-        .with_context(|| {
-            format!(
-                "failed to parse LLM signature response as JSON.\n\
+    let sig: VulnSignature = serde_json::from_str(json_str).with_context(|| {
+        format!(
+            "failed to parse LLM signature response as JSON.\n\
                  Raw response:\n{content}"
-            )
-        })?;
+        )
+    })?;
 
     if sig.confidence > 10 {
         bail!("LLM returned confidence > 10: {}", sig.confidence);

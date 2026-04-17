@@ -20,19 +20,19 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
     let start = Instant::now();
 
     let pb = ProgressBar::new(6);
-    pb.set_style(
-        ProgressStyle::with_template("  [{pos}/{len}] {msg:.cyan}").unwrap(),
-    );
+    pb.set_style(ProgressStyle::with_template("  [{pos}/{len}] {msg:.cyan}").unwrap());
 
     // Stage 1: Ingest
     pb.set_position(1);
     pb.set_message("ingesting patch...");
 
-    let seed =
-        naptrace_core::ingest::ingest(&opts.patch_source, &opts.target).await?;
+    let seed = naptrace_core::ingest::ingest(&opts.patch_source, &opts.target).await?;
 
     let ingest_elapsed = start.elapsed();
-    pb.set_message(format!("ingesting patch... done ({:.1}s)", ingest_elapsed.as_secs_f64()));
+    pb.set_message(format!(
+        "ingesting patch... done ({:.1}s)",
+        ingest_elapsed.as_secs_f64()
+    ));
 
     // Print ingest summary
     pb.finish_and_clear();
@@ -48,7 +48,10 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
         "  {} {} file(s), {} hunk(s)",
         "diff:".dimmed(),
         seed.patched_files.len(),
-        seed.patched_files.iter().map(|f| f.hunks.len()).sum::<usize>()
+        seed.patched_files
+            .iter()
+            .map(|f| f.hunks.len())
+            .sum::<usize>()
     );
     if let Some(ref msg) = seed.commit_msg {
         let first_line = msg.lines().next().unwrap_or(msg);
@@ -65,8 +68,10 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
             println!(
                 "    hunk {}: @@ -{},{} +{},{} @@  ({} removed, {} added)",
                 i + 1,
-                hunk.old_start, hunk.old_lines,
-                hunk.new_start, hunk.new_lines,
+                hunk.old_start,
+                hunk.old_lines,
+                hunk.new_start,
+                hunk.new_lines,
                 hunk.removed_lines.len().to_string().red(),
                 hunk.added_lines.len().to_string().green(),
             );
@@ -91,29 +96,34 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
     pb2.set_message("distilling vulnerability signature...");
     pb2.enable_steady_tick(std::time::Duration::from_millis(100));
 
-    let provider = naptrace_llm::Provider::from_str(&opts.reasoner)?;
+    let provider = opts.reasoner.parse::<naptrace_llm::Provider>()?;
     let llm = naptrace_llm::create_client(provider).await?;
 
     // Use explicit --model, or fall back to the provider's default
     // (don't use the prompt template's model for non-Anthropic providers)
-    let model_override = opts
-        .model
-        .as_deref()
-        .or_else(|| {
-            if provider != naptrace_llm::Provider::Anthropic {
-                Some(provider.default_model())
-            } else {
-                None // let the prompt template decide
-            }
-        });
+    let model_override = opts.model.as_deref().or_else(|| {
+        if provider != naptrace_llm::Provider::Anthropic {
+            Some(provider.default_model())
+        } else {
+            None // let the prompt template decide
+        }
+    });
     let signature = naptrace_core::signature::distill(&seed, llm.as_ref(), model_override).await?;
 
     let distill_elapsed = start.elapsed();
     pb2.finish_and_clear();
 
-    println!("\n  {} distilled in {:.1}s", "[signature]".green(), distill_elapsed.as_secs_f64());
+    println!(
+        "\n  {} distilled in {:.1}s",
+        "[signature]".green(),
+        distill_elapsed.as_secs_f64()
+    );
     println!("{}", "─".repeat(60).dimmed());
-    println!("  {} {}", "bug class:".dimmed(), signature.bug_class.yellow());
+    println!(
+        "  {} {}",
+        "bug class:".dimmed(),
+        signature.bug_class.yellow()
+    );
     println!("  {} {}/10", "confidence:".dimmed(), signature.confidence);
     println!("  {} {}", "root cause:".dimmed(), signature.root_cause);
     println!();
@@ -195,15 +205,14 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
     // Stage 4: Slice CPG paths
     let pb4 = ProgressBar::new_spinner();
     pb4.set_style(ProgressStyle::with_template("  [4/6] {msg:.cyan}").unwrap());
-    pb4.set_message(format!("slicing CPG paths for {} candidates...", candidates.len()));
+    pb4.set_message(format!(
+        "slicing CPG paths for {} candidates...",
+        candidates.len()
+    ));
     pb4.enable_steady_tick(std::time::Duration::from_millis(100));
 
-    let sliced = naptrace_core::slice::slice_candidates(
-        candidates,
-        target_path,
-        seed.language,
-    )
-    .await?;
+    let sliced =
+        naptrace_core::slice::slice_candidates(candidates, target_path, seed.language).await?;
 
     let slice_elapsed = start.elapsed();
     pb4.finish_and_clear();
@@ -271,12 +280,7 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
         println!(
             "\n  {} {}  {}:{}-{}  [{}]",
-            icon,
-            color_verdict,
-            f.file_path,
-            f.start_line,
-            f.end_line,
-            f.function_name,
+            icon, color_verdict, f.file_path, f.start_line, f.end_line, f.function_name,
         );
 
         for line in textwrap(&f.verdict.justification, 64) {
@@ -314,19 +318,13 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
         summary.needs_check.to_string().yellow(),
         summary.infeasible.to_string().dimmed(),
     );
-    println!(
-        "  total elapsed: {:.1}s\n",
-        start.elapsed().as_secs_f64(),
-    );
+    println!("  total elapsed: {:.1}s\n", start.elapsed().as_secs_f64(),);
 
     // SARIF output
     if opts.output_format == "sarif"
         || (opts.output_format == "auto" && !atty::is(atty::Stream::Stdout))
     {
-        let sarif = naptrace_core::report::generate_sarif(
-            &findings,
-            seed.cve_id.as_deref(),
-        );
+        let sarif = naptrace_core::report::generate_sarif(&findings, seed.cve_id.as_deref());
         let json = serde_json::to_string_pretty(&sarif)?;
         println!("{json}");
     }

@@ -1,15 +1,16 @@
-pub mod voyage;
-pub mod ollama;
 pub mod local;
+pub mod ollama;
+pub mod voyage;
 
 use anyhow::Result;
 
+/// Boxed future type alias to avoid clippy::type_complexity.
+pub type EmbedFuture<'a> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<Vec<f32>>>> + Send + 'a>>;
+
 /// Trait for embedding backends.
 pub trait Embedder: Send + Sync {
-    fn embed(
-        &self,
-        texts: &[String],
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<Vec<f32>>>> + Send + '_>>;
+    fn embed(&self, texts: &[String]) -> EmbedFuture<'_>;
 
     fn dimension(&self) -> usize;
 }

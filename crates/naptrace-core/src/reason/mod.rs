@@ -55,8 +55,8 @@ pub async fn reason(
     model_override: Option<&str>,
     raw_diff: &str,
 ) -> Result<Vec<JudgedCandidate>> {
-    let prompt_template = load_prompt("reason_feasibility")
-        .context("failed to load reason_feasibility prompt")?;
+    let prompt_template =
+        load_prompt("reason_feasibility").context("failed to load reason_feasibility prompt")?;
 
     let model = model_override.unwrap_or(&prompt_template.meta.model);
     let mut results = Vec::with_capacity(candidates.len());
@@ -142,11 +142,7 @@ pub async fn reason(
 }
 
 /// Build the user message for the reasoning prompt.
-fn build_reason_input(
-    sig: &VulnSignature,
-    sliced: &SlicedCandidate,
-    raw_diff: &str,
-) -> String {
+fn build_reason_input(sig: &VulnSignature, sliced: &SlicedCandidate, raw_diff: &str) -> String {
     let candidate = &sliced.candidate;
 
     let mut input = format!(
@@ -183,9 +179,12 @@ fn build_reason_input(
             }
         }
     } else if sliced.sliced {
-        input.push_str("\n## CPG Path Slice\nNo data-flow paths found by Joern for this candidate.\n");
+        input.push_str(
+            "\n## CPG Path Slice\nNo data-flow paths found by Joern for this candidate.\n",
+        );
     } else {
-        input.push_str("\n## CPG Path Slice\nCPG analysis was not performed (Joern unavailable).\n");
+        input
+            .push_str("\n## CPG Path Slice\nCPG analysis was not performed (Joern unavailable).\n");
     }
 
     // Add sanitizer context from signature
@@ -202,9 +201,7 @@ fn parse_verdict(content: &str) -> Result<Verdict> {
     let json_str = crate::signature::extract_json_block(content);
 
     let verdict: Verdict = serde_json::from_str(json_str)
-        .with_context(|| {
-            format!("failed to parse verdict JSON.\nRaw:\n{content}")
-        })?;
+        .with_context(|| format!("failed to parse verdict JSON.\nRaw:\n{content}"))?;
 
     if verdict.confidence > 10 {
         anyhow::bail!("confidence > 10: {}", verdict.confidence);

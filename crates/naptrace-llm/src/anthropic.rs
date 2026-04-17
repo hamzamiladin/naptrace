@@ -55,8 +55,7 @@ impl AnthropicClient {
     }
 
     pub fn from_env() -> Result<Self> {
-        let key = std::env::var("ANTHROPIC_API_KEY")
-            .context("ANTHROPIC_API_KEY not set")?;
+        let key = std::env::var("ANTHROPIC_API_KEY").context("ANTHROPIC_API_KEY not set")?;
         Ok(Self::new(key))
     }
 }
