@@ -24,3 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prompt template loader with YAML frontmatter parsing and variable interpolation
 - Smart model defaults per provider — `--reasoner ollama` just works without `--model`
 - 28 tests total
+- Stage 3 (Retrieve): tree-sitter function extraction + embedding-based candidate search
+- Function extractor supporting C, C++, Python, Java, JavaScript, TypeScript, Go, Rust
+- Ollama embedding backend using `nomic-embed-text` for fully local operation
+- Voyage AI embedding backend for API users
+- In-memory cosine similarity search with top-K ranking
+- 37 tests total

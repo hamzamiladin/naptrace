@@ -9,6 +9,8 @@ pub struct HuntOptions {
     pub explain_only: bool,
     pub reasoner: String,
     pub model: Option<String>,
+    pub top_k: usize,
+    pub languages: Vec<naptrace_core::Language>,
 }
 
 pub async fn run(opts: HuntOptions) -> Result<()> {
@@ -138,9 +140,58 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     println!("{}", "─".repeat(60).dimmed());
 
-    // Stages 3-6 not yet implemented
+    // Stage 3: Retrieve candidate sites
+    let pb3 = ProgressBar::new_spinner();
+    pb3.set_style(ProgressStyle::with_template("  [3/6] {msg:.cyan}").unwrap());
+    pb3.set_message(format!("retrieving candidate sites (K={})...", opts.top_k));
+    pb3.enable_steady_tick(std::time::Duration::from_millis(100));
+
+    let embedder = naptrace_embed::create_embedder();
+    let target_path = std::path::Path::new(&opts.target);
+
+    let candidates = naptrace_core::retrieve::retrieve(
+        target_path,
+        &signature,
+        embedder.as_ref(),
+        &opts.languages,
+        opts.top_k,
+    )
+    .await?;
+
+    let retrieve_elapsed = start.elapsed();
+    pb3.finish_and_clear();
+
     println!(
-        "\n  {} stages 3-6 (retrieve, slice, reason, report) not yet implemented.",
+        "\n  {} {} candidates in {:.1}s",
+        "[candidates]".green(),
+        candidates.len(),
+        retrieve_elapsed.as_secs_f64(),
+    );
+    println!("{}", "─".repeat(60).dimmed());
+
+    if candidates.is_empty() {
+        println!("  no candidate sites found.");
+    } else {
+        for (i, c) in candidates.iter().enumerate() {
+            let sim_pct = (c.similarity * 100.0) as u32;
+            println!(
+                "  {}. {} {}:{}-{}  {} ({}% similar)",
+                i + 1,
+                c.function_name.bold(),
+                c.file_path,
+                c.start_line,
+                c.end_line,
+                format!("[{}]", c.language).dimmed(),
+                sim_pct,
+            );
+        }
+    }
+
+    println!("{}", "─".repeat(60).dimmed());
+
+    // Stages 4-6 not yet implemented
+    println!(
+        "\n  {} stages 4-6 (slice, reason, report) not yet implemented.",
         "[todo]".yellow(),
     );
     println!(

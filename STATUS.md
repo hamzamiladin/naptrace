@@ -23,3 +23,11 @@
 - Stage 2 calls the LLM, parses structured JSON signature response.
 - Verified end-to-end with Ollama (qwen2.5-coder:7b) on the SQLite fixture.
 - Next: Stage 3 (Retrieve) — embed and search for candidate sites.
+
+## 2026-04-17 — Stage 3 (Retrieve) complete
+
+- Tree-sitter function extractor for 8 languages.
+- Ollama + Voyage embedding backends.
+- In-memory cosine similarity search, top-K ranking.
+- Full 3-stage pipeline tested: Ingest -> Distill -> Retrieve.
+- Next: Stage 4 (Slice) — Joern CPG paths for each candidate.

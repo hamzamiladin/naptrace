@@ -106,14 +106,24 @@ async fn main() -> anyhow::Result<()> {
             explain_only,
             reasoner,
             model,
+            top_k,
+            languages,
             ..
         } => {
+            let langs: Vec<naptrace_core::Language> = languages
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|s| naptrace_core::Language::from_extension(s))
+                .collect();
+
             hunt::run(hunt::HuntOptions {
                 patch_source,
                 target,
                 explain_only,
                 reasoner,
                 model,
+                top_k,
+                languages: langs,
             })
             .await
         }
