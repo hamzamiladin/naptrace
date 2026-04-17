@@ -213,6 +213,31 @@ Run `naptrace doctor` to verify which providers are configured.
 
 Full corpus: [`benchmarks/ground_truth.yaml`](benchmarks/ground_truth.yaml) | Harness: [`benchmarks/run.sh`](benchmarks/run.sh)
 
+### Custom benchmarks
+
+Add your own CVEs to test against:
+
+```sh
+# Run with your own corpus file
+naptrace bench --corpus ~/my-cves.yaml
+```
+
+Format (see [`benchmarks/README.md`](benchmarks/README.md) for full schema):
+
+```yaml
+- cve: CVE-2025-XXXXX
+  description: "Your vulnerability description"
+  bug_class: INTEGER_OVERFLOW
+  source_repo: https://github.com/org/repo
+  patch_commit: abc123
+  language: c
+  variants:
+    - file: src/vulnerable.c
+      function: do_math
+      is_feasible: true
+      notes: "No overflow check before addition"
+```
+
 ## Why this exists
 
 Google's Big Sleep (Project Zero + DeepMind) proved that LLMs can perform **variant analysis** -- given a patched bug, find its structural twins across a codebase. Big Sleep found real CVEs in SQLite, Chrome, and WebKit that fuzzing missed.
