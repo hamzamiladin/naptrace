@@ -183,12 +183,13 @@ Run `naptrace doctor` to verify which providers are configured.
 
 ## Tested Against
 
-| Codebase | Language | Files | Functions | Result |
-|----------|----------|-------|-----------|--------|
-| Redis | C | 131 | 5,335 | Found potential overflow in `checkUnsignedBitfieldOverflow` |
-| Flask | Python | ~50 | ~200 | 0 false positives (correctly rejected all) |
-| Gson | Java | ~100 | ~300 | 0 false positives (identified anti-deser guards) |
-| Custom C target | C | 1 | 5 | 3/3 vulnerable functions correctly identified |
+| Codebase | Language | Functions | CVE Tested | Result |
+|----------|----------|-----------|------------|--------|
+| Redis | C | 5,335 | CVE-2025-6965 | Found real overflow variant in `checkUnsignedBitfieldOverflow` |
+| Django GIS | Python | ~200 | CVE-2026-1207 | 0 false positives (correctly rejected 5 candidates) |
+| Flask | Python | ~200 | pickle RCE | 0 false positives (correctly rejected all) |
+| Gson | Java | ~300 | deserialization | 0 false positives (identified anti-deser guards) |
+| Custom C target | C | 5 | CVE-2025-6965 | 3/3 vulnerable functions correctly identified with PoC sketches |
 
 ## Benchmarks
 
