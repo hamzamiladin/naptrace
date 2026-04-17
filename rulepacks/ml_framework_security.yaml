@@ -1,0 +1,68 @@
+name: ml_framework_security
+language: python
+description: Security patterns in ML/AI frameworks (vLLM, PyTorch, TensorFlow, etc.)
+version: 1
+
+rules:
+  - id: pickle_model_load
+    bug_class: DESERIALIZATION
+    description: Model loading via pickle/torch.load without weights_only
+    pattern: |
+      (call
+        function: (attribute
+          attribute: (identifier) @fn)
+        (#match? @fn "load|load_state_dict"))
+    context: No weights_only=True argument (PyTorch 2.6+ default changed)
+    severity: critical
+
+  - id: zeromq_recv_pyobj
+    bug_class: DESERIALIZATION
+    description: ZeroMQ recv_pyobj deserializes with pickle
+    pattern: |
+      (call
+        function: (attribute
+          attribute: (identifier) @fn)
+        (#eq? @fn "recv_pyobj"))
+    context: Data from network socket deserialized via pickle
+    severity: critical
+
+  - id: numpy_load_allow_pickle
+    bug_class: DESERIALIZATION
+    description: numpy.load with allow_pickle=True
+    pattern: |
+      (call
+        function: (attribute
+          attribute: (identifier) @fn)
+        (#eq? @fn "load"))
+    context: allow_pickle=True on data from untrusted source
+    severity: high
+
+  - id: eval_model_config
+    bug_class: INJECTION
+    description: eval/exec used to process model configuration
+    pattern: |
+      (call
+        function: (identifier) @fn
+        (#match? @fn "eval|exec"))
+    context: Configuration string from model hub or user input
+    severity: critical
+
+  - id: subprocess_training_script
+    bug_class: INJECTION
+    description: subprocess.run/Popen with shell=True for training
+    pattern: |
+      (call
+        function: (attribute
+          attribute: (identifier) @fn)
+        (#match? @fn "run|Popen|call"))
+    context: Command string includes model name or config from external source
+    severity: high
+
+  - id: safetensors_bypass
+    bug_class: DESERIALIZATION
+    description: Fallback from safetensors to pickle for model loading
+    pattern: |
+      (try_statement
+        (except_clause))
+    context: SafeTensors load fails, code falls back to torch.load without weights_only
+    severity: high

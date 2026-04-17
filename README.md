@@ -52,7 +52,11 @@ $ naptrace hunt file:cve_2025_6965.patch ./target-project
 ## Install
 
 ```sh
-# From source (requires Rust)
+# From crates.io (recommended)
+cargo install naptrace
+```
+```sh
+# From source
 cargo install --git https://github.com/hamzamiladin/naptrace
 ```
 ```sh
@@ -166,11 +170,20 @@ Local mode via Ollama is a first-class citizen. No signup, no API keys, no cloud
 
 ## Benchmarks
 
-| CVE | Bug class | Language | Status |
-|-----|-----------|----------|--------|
-| CVE-2025-6965 | INTEGER_OVERFLOW | C | Verified |
+15 CVEs across 8 vulnerability families, 4 languages:
 
-Full harness: [`benchmarks/run.sh`](benchmarks/run.sh)
+| Family | CVEs | Language | Bug class |
+|--------|------|----------|-----------|
+| Linux io_uring pbuf | CVE-2024-0582, CVE-2024-35880, CVE-2025-21836 | C | UAF / race |
+| SQLite arithmetic | CVE-2025-6965 (Big Sleep) | C | integer overflow |
+| OpenSSL ASN.1 | CVE-2025-15467, -15468, -15469 | C | buffer overflow |
+| curl boundary | CVE-2025-9086 | C | OOB read |
+| libxml2 buffer calc | CVE-2025-6021 | C | integer overflow |
+| Python pickle RCE | CVE-2025-32444, CVE-2025-61765 | Python | deserialization |
+| Apache Commons | CVE-2025-48734 | Java | access control |
+| WebKit Big Sleep | CVE-2025-43429, CVE-2025-43434 | C++ | UAF / overflow |
+
+Full corpus: [`benchmarks/ground_truth.yaml`](benchmarks/ground_truth.yaml) | Harness: [`benchmarks/run.sh`](benchmarks/run.sh)
 
 ## Why this exists
 

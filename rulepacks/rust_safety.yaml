@@ -1,0 +1,60 @@
+name: rust_safety
+language: rust
+description: Rust unsafe code and memory safety patterns
+version: 1
+
+rules:
+  - id: unsafe_block_raw_pointer
+    bug_class: USE_AFTER_FREE
+    description: Raw pointer dereference in unsafe block
+    pattern: |
+      (unsafe_block
+        (block
+          (expression_statement
+            (unary_expression
+              operator: "*"))))
+    context: Raw pointer from external source without lifetime validation
+    severity: high
+
+  - id: transmute_type_punning
+    bug_class: TYPE_CONFUSION
+    description: std::mem::transmute for type conversion
+    pattern: |
+      (call_expression
+        function: (scoped_identifier
+          name: (identifier) @fn)
+        (#eq? @fn "transmute"))
+    context: Transmute between types with different sizes or invariants
+    severity: critical
+
+  - id: unchecked_index
+    bug_class: OOB_READ
+    description: get_unchecked or indexing in unsafe without bounds check
+    pattern: |
+      (call_expression
+        function: (field_expression
+          field: (field_identifier) @fn)
+        (#match? @fn "get_unchecked|get_unchecked_mut"))
+    context: Index derived from external input
+    severity: high
+
+  - id: ffi_null_pointer
+    bug_class: NULL_DEREF
+    description: FFI function return used without null check
+    pattern: |
+      (unsafe_block
+        (block
+          (call_expression
+            function: (identifier))))
+    context: C FFI function that may return NULL
+    severity: medium
+
+  - id: static_mut_access
+    bug_class: RACE_CONDITION
+    description: Access to static mut variable
+    pattern: |
+      (unsafe_block
+        (block
+          (identifier) @var))
+    context: static mut accessed without synchronization
+    severity: high
