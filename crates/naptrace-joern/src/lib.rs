@@ -16,12 +16,22 @@ pub fn joern_cache_dir() -> Result<PathBuf> {
 
 pub fn joern_bin_path() -> Result<PathBuf> {
     let cache = joern_cache_dir()?;
-    Ok(cache.join("joern-cli").join("joern"))
+    let name = if cfg!(target_os = "windows") {
+        "joern.bat"
+    } else {
+        "joern"
+    };
+    Ok(cache.join("joern-cli").join(name))
 }
 
 pub fn joern_parse_bin_path() -> Result<PathBuf> {
     let cache = joern_cache_dir()?;
-    Ok(cache.join("joern-cli").join("joern-parse"))
+    let name = if cfg!(target_os = "windows") {
+        "joern-parse.bat"
+    } else {
+        "joern-parse"
+    };
+    Ok(cache.join("joern-cli").join(name))
 }
 
 pub fn is_joern_installed() -> bool {

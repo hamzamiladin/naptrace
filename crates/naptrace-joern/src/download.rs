@@ -117,12 +117,48 @@ pub fn auto_install_java() -> Result<()> {
         }
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        // Try winget (Windows 10+)
+        if which_exists("winget") {
+            info!("installing Java via winget...");
+            let status = std::process::Command::new("winget")
+                .args([
+                    "install",
+                    "--id",
+                    "EclipseAdoptium.Temurin.21.JRE",
+                    "-e",
+                    "--silent",
+                ])
+                .status()
+                .context("failed to run winget install")?;
+            if status.success() {
+                info!("Java 21 installed via winget");
+                return Ok(());
+            }
+        }
+
+        // Try chocolatey
+        if which_exists("choco") {
+            info!("installing Java via chocolatey...");
+            let status = std::process::Command::new("choco")
+                .args(["install", "temurin21jre", "-y"])
+                .status()
+                .context("failed to run choco install")?;
+            if status.success() {
+                info!("Java 21 installed via chocolatey");
+                return Ok(());
+            }
+        }
+    }
+
     anyhow::bail!(
         "could not auto-install Java.\n\
          please install Java 11+ manually:\n  \
-         macOS:  brew install openjdk@21\n  \
-         Ubuntu: sudo apt install openjdk-21-jre-headless\n  \
-         Fedora: sudo dnf install java-21-openjdk-headless"
+         macOS:   brew install openjdk@21\n  \
+         Ubuntu:  sudo apt install openjdk-21-jre-headless\n  \
+         Fedora:  sudo dnf install java-21-openjdk-headless\n  \
+         Windows: winget install EclipseAdoptium.Temurin.21.JRE"
     )
 }
 
@@ -199,15 +235,30 @@ pub async fn ensure_joern() -> Result<PathBuf> {
         "downloaded Joern zip"
     );
 
-    // Extract zip
-    let status = std::process::Command::new("unzip")
-        .args(["-o", "-q", &zip_path.to_string_lossy()])
-        .current_dir(&cache)
-        .status()
-        .context("failed to extract Joern zip")?;
+    // Extract zip (cross-platform)
+    let status = if cfg!(target_os = "windows") {
+        std::process::Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-Command",
+                &format!(
+                    "Expand-Archive -Force -Path '{}' -DestinationPath '{}'",
+                    zip_path.display(),
+                    cache.display()
+                ),
+            ])
+            .status()
+            .context("failed to extract Joern zip with PowerShell")?
+    } else {
+        std::process::Command::new("unzip")
+            .args(["-o", "-q", &zip_path.to_string_lossy()])
+            .current_dir(&cache)
+            .status()
+            .context("failed to extract Joern zip")?
+    };
 
     if !status.success() {
-        anyhow::bail!("unzip extraction failed with status {status}");
+        anyhow::bail!("zip extraction failed with status {status}");
     }
 
     // Clean up zip
