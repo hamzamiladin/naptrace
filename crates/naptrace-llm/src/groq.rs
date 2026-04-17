@@ -85,21 +85,51 @@ impl LlmClient for GroqClient {
                 max_tokens: request.max_tokens,
             };
 
-            let resp = self
-                .client
-                .post(API_URL)
-                .header("Authorization", format!("Bearer {}", self.api_key))
-                .header("Content-Type", "application/json")
-                .json(&body)
-                .send()
-                .await
-                .context("failed to send request to Groq API")?;
+            // Retry loop for rate limiting (Groq free tier: 12K TPM)
+            let mut last_error = String::new();
+            let mut resp_body = None;
 
-            let status = resp.status();
-            if !status.is_success() {
-                let text = resp.text().await.unwrap_or_default();
-                anyhow::bail!("Groq API returned {status}: {text}");
+            for attempt in 0..4 {
+                let resp = self
+                    .client
+                    .post(API_URL)
+                    .header("Authorization", format!("Bearer {}", self.api_key))
+                    .header("Content-Type", "application/json")
+                    .json(&body)
+                    .send()
+                    .await
+                    .context("failed to send request to Groq API")?;
+
+                let status = resp.status();
+                if status.as_u16() == 429 {
+                    // Rate limited — wait and retry
+                    let wait = match attempt {
+                        0 => 5,
+                        1 => 15,
+                        2 => 30,
+                        _ => 60,
+                    };
+                    tracing::debug!(
+                        "Groq rate limited, waiting {wait}s (attempt {}/4)",
+                        attempt + 1
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(wait)).await;
+                    last_error = resp.text().await.unwrap_or_default();
+                    continue;
+                }
+
+                if !status.is_success() {
+                    let text = resp.text().await.unwrap_or_default();
+                    anyhow::bail!("Groq API returned {status}: {text}");
+                }
+
+                resp_body = Some(resp);
+                break;
             }
+
+            let resp = resp_body.ok_or_else(|| {
+                anyhow::anyhow!("Groq rate limit exceeded after 4 retries: {last_error}")
+            })?;
 
             let api_resp: ApiResponse =
                 resp.json().await.context("failed to parse Groq response")?;
