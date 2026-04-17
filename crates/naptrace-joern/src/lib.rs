@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 
-const JOERN_VERSION: &str = "2.0.493";
+pub const JOERN_VERSION: &str = "4.0.523";
 
 pub fn joern_cache_dir() -> Result<PathBuf> {
     let dirs = ProjectDirs::from("dev", "naptrace", "naptrace")
@@ -16,12 +16,12 @@ pub fn joern_cache_dir() -> Result<PathBuf> {
 
 pub fn joern_bin_path() -> Result<PathBuf> {
     let cache = joern_cache_dir()?;
-    Ok(cache.join(format!("joern-cli-{JOERN_VERSION}")).join("joern"))
+    Ok(cache.join("joern-cli").join("joern"))
 }
 
 pub fn joern_parse_bin_path() -> Result<PathBuf> {
     let cache = joern_cache_dir()?;
-    Ok(cache.join(format!("joern-cli-{JOERN_VERSION}")).join("joern-parse"))
+    Ok(cache.join("joern-cli").join("joern-parse"))
 }
 
 pub fn is_joern_installed() -> bool {

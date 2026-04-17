@@ -30,3 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voyage AI embedding backend for API users
 - In-memory cosine similarity search with top-K ranking
 - 37 tests total
+- Stage 4 (Slice): Joern CPG building and path extraction for each candidate
+- Auto-download of Joern CLI (v4.0.523) on first use
+- Auto-install of Java 21 via Homebrew/apt/dnf when missing
+- Graceful degradation — skips CPG slicing if Joern/Java unavailable

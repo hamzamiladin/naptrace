@@ -189,9 +189,50 @@ pub async fn run(opts: HuntOptions) -> Result<()> {
 
     println!("{}", "─".repeat(60).dimmed());
 
-    // Stages 4-6 not yet implemented
+    // Stage 4: Slice CPG paths
+    let pb4 = ProgressBar::new_spinner();
+    pb4.set_style(ProgressStyle::with_template("  [4/6] {msg:.cyan}").unwrap());
+    pb4.set_message(format!("slicing CPG paths for {} candidates...", candidates.len()));
+    pb4.enable_steady_tick(std::time::Duration::from_millis(100));
+
+    let sliced = naptrace_core::slice::slice_candidates(
+        candidates,
+        target_path,
+        seed.language,
+    )
+    .await?;
+
+    let slice_elapsed = start.elapsed();
+    pb4.finish_and_clear();
+
+    let sliced_count = sliced.iter().filter(|s| s.sliced).count();
+    let paths_count: usize = sliced.iter().map(|s| s.cpg_paths.len()).sum();
+
+    if sliced_count > 0 {
+        println!(
+            "\n  {} {} candidates sliced, {} paths found ({:.1}s)",
+            "[cpg]".green(),
+            sliced_count,
+            paths_count,
+            slice_elapsed.as_secs_f64(),
+        );
+    } else {
+        println!(
+            "\n  {} CPG slicing skipped (Joern/Java not available) ({:.1}s)",
+            "[cpg]".yellow(),
+            slice_elapsed.as_secs_f64(),
+        );
+        println!(
+            "  {}",
+            "candidates will be sent to the reasoner without path context.".dimmed()
+        );
+    }
+
+    println!("{}", "─".repeat(60).dimmed());
+
+    // Stages 5-6 not yet implemented
     println!(
-        "\n  {} stages 4-6 (slice, reason, report) not yet implemented.",
+        "\n  {} stages 5-6 (reason, report) not yet implemented.",
         "[todo]".yellow(),
     );
     println!(

@@ -31,3 +31,11 @@
 - In-memory cosine similarity search, top-K ranking.
 - Full 3-stage pipeline tested: Ingest -> Distill -> Retrieve.
 - Next: Stage 4 (Slice) — Joern CPG paths for each candidate.
+
+## 2026-04-17 — Stage 4 (Slice) complete
+
+- Joern auto-download (v4.0.523) + Java auto-install.
+- CPG building via joern-parse, querying via joern scripts.
+- Graceful skip when Joern/Java unavailable.
+- Full 4-stage pipeline tested end-to-end.
+- Next: Stage 5 (Reason) — LLM feasibility verdict per candidate.
