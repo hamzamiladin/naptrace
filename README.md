@@ -189,6 +189,7 @@ Run `naptrace doctor` to verify which providers are configured.
 | Django GIS | Python | ~200 | 5 | 1 | N/A | 0 FP — correctly rejected |
 | Flask | Python | ~200 | 5 | 0 | N/A | 0 FP — reranker filtered all (no pickle usage) |
 | Gson | Java | ~300 | 5 | 0 | N/A | 0 FP — reranker filtered all (safe JSON deser) |
+| Expat (pre-patch) | C | 326 | 10 | 9 | 6 | **Found missed variant** of CVE-2022-22822 in `getContext()` |
 | Custom C | C | 5 | 5 | 2 | 2 | Correct — sanitizer filtered, CPG paths found |
 
 ## Benchmarks
