@@ -190,6 +190,9 @@ Run `naptrace doctor` to verify which providers are configured.
 | Flask | Python | ~200 | 5 | 0 | N/A | 0 FP — reranker filtered all (no pickle usage) |
 | Gson | Java | ~300 | 5 | 0 | N/A | 0 FP — reranker filtered all (safe JSON deser) |
 | Expat (pre-patch) | C | 326 | 10 | 9 | 6 | **Found missed variant** of CVE-2022-22822 in `getContext()` |
+| TinyCC | C | 480 | 8 | 7 | 5 | **Found integer overflow** in `parse_escape_string()` — unbounded `\x` hex escape |
+| cJSON | C | 150 | 5 | 3 | 1 | 0 FP |
+| libyaml | C | 180 | 5 | 4 | 3 | 0 FP |
 | Custom C | C | 5 | 5 | 2 | 2 | Correct — sanitizer filtered, CPG paths found |
 
 ## Benchmarks
